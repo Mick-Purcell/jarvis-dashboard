@@ -44,7 +44,6 @@ export default function App() {
     speechSynthesis.onvoiceschanged = load
   }, [])
 
-  // Speak AI responses when they complete
   useEffect(() => {
     const lastMsg = chat.messages[chat.messages.length - 1]
     if (lastMsg?.role === 'assistant' && lastMsg.content && !chat.isTyping) {
@@ -68,7 +67,6 @@ export default function App() {
     }, 2000)
   }, [])
 
-  // Fast local commands (no backend needed)
   const handleLocalCommand = useCallback((text) => {
     const t = text.toLowerCase()
     if (/time|clock|hour/.test(t)) {
@@ -104,18 +102,13 @@ export default function App() {
   const handleVoiceResult = useCallback((text) => {
     const t = text.toLowerCase()
     const isWake = WAKE_WORDS.some(w => t.includes(w)) || t.includes('jarvis')
-
     spawnParticles(20)
-
-    // Check for local command first
     const local = handleLocalCommand(text)
     if (local) {
       speak(local, voices)
       chat.sendMessage(text, { voice: true })
       return
     }
-
-    // If it has a wake word or is a direct command, send to AI
     if (isWake || t.length > 5) {
       const shouldSearch = t.includes('search') || t.includes('find') || t.includes('look up') || t.includes('what is') || t.includes('who is')
       chat.sendMessage(text, { searchFirst: shouldSearch, voice: true })
@@ -173,10 +166,8 @@ export default function App() {
   return (
     <>
       {!active && <StartOverlay onActivate={activate} />}
-
       <div className={`h-full w-full transition-opacity duration-1000 ${active ? 'opacity-100' : 'opacity-0'}`}>
         <ParticleField particles={particles} />
-
         <div className="h-full w-full transition-opacity duration-1000 relative z-10"
           style={{
             display: 'grid',
@@ -187,15 +178,12 @@ export default function App() {
             height: '100vh',
             opacity: active ? 1 : 0,
           }}>
-          {/* LEFT COLUMN */}
           <div style={{ gridColumn: '1', gridRow: '1 / 3', display: 'flex', flexDirection: 'column', gap: '14px', overflow: 'hidden' }}>
             <ProfilePanel data={data} />
             <NetworkPanel />
             <CalendarPanel />
             <AppLauncherPanel />
           </div>
-
-          {/* HEADER */}
           <div className="hud-panel" style={{ gridColumn: '2', gridRow: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div className="text-center">
               <h1 className="font-orbitron text-2xl tracking-[0.3em] text-white"
@@ -207,8 +195,6 @@ export default function App() {
               </p>
             </div>
           </div>
-
-          {/* CENTER - Chat or Arc Reactor */}
           <div className="hud-panel relative flex items-center justify-center overflow-hidden" style={{ gridColumn: '2', gridRow: '2' }}>
             {!chat.chatOpen && (
               <>
@@ -224,8 +210,6 @@ export default function App() {
                 </div>
               </>
             )}
-
-            {/* Chat overlay */}
             <ChatPanel
               messages={chat.messages}
               isTyping={chat.isTyping}
@@ -238,21 +222,16 @@ export default function App() {
               onVoiceToggle={toggleVoice}
             />
           </div>
-
-          {/* RIGHT COLUMN */}
           <div style={{ gridColumn: '3', gridRow: '1 / 3', display: 'flex', flexDirection: 'column', gap: '14px', overflow: 'hidden' }}>
             <SystemMonitorPanel data={data} />
             <WeatherPanel />
             <DatePowerPanel />
             <MediaPlayerPanel />
           </div>
-
-          {/* FOOTER */}
           <div style={{ gridColumn: '1 / 4', gridRow: '3' }}>
             <FooterPanel />
           </div>
         </div>
-
         <VoiceIndicator isListening={isListening} />
       </div>
     </>
