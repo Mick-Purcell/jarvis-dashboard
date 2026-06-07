@@ -4,173 +4,104 @@ function markdownToHtml(text) {
   return text
     .replace(/```(\w+)?\n([\s\S]*?)```/g, '<pre class="code-block"><code>$2</code></pre>')
     .replace(/`([^`]+)`/g, '<code class="inline-code">$1</code>')
-    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-    .replace(/\*(.*?)\*/g, '<em>$1</em>')
-    .replace(/^\> (.*$)/gim, '<blockquote>$1</blockquote>')
-    .replace(/\n/g, '<br>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\*([^*]+)\*/g, '<em>$1</em>')
+    .replace(/^>\s*(.+)$/gm, '<blockquote>$1</blockquote>')
+    .replace(/\n/g, '<br/>')
 }
 
 export default function ChatPanel({ messages, isTyping, isSearching, chatOpen, setChatOpen, onSend, onClear, voiceListening, onVoiceToggle }) {
   const [input, setInput] = useState('')
   const scrollRef = useRef(null)
-  const inputRef = useRef(null)
 
   useEffect(() => {
-    if (scrollRef.current) {
-      scrollRef.current.scrollTop = scrollRef.current.scrollHeight
-    }
+    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
   }, [messages, isTyping])
 
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (!input.trim() || isTyping) return
-    onSend(input, { searchFirst: input.startsWith('?') })
+    if (!input.trim()) return
+    const searchFirst = input.startsWith('?')
+    onSend(searchFirst ? input.slice(1).trim() : input, { searchFirst })
     setInput('')
   }
 
-  const handleKeyDown = (e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSubmit(e)
-    }
-  }
-
-  if (!chatOpen && messages.length === 0) {
-    return (
-      <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-[300] flex items-center gap-3">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2 bg-[rgba(0,20,40,0.85)] border border-cyan/30 rounded px-3 py-2 backdrop-blur-md"
-          style={{ boxShadow: '0 0 20px rgba(0,240,255,0.1), inset 0 0 20px rgba(0,240,255,0.03)' }}>
-          <span className="text-cyan text-[0.7rem] font-orbitron mr-1">❯</span>
-          <input
-            ref={inputRef}
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask J.A.R.V.I.S. anything..."
-            className="bg-transparent border-none outline-none text-white text-[0.8rem] w-[280px] font-rajdhani placeholder:text-hud-dim/50"
-          />
-          <button type="submit" disabled={isTyping} className="text-cyan text-[0.7rem] hover:text-white transition-colors cursor-pointer disabled:opacity-30">
-            SEND
-          </button>
-        </form>
-        <button
-          onClick={onVoiceToggle}
-          className={`w-9 h-9 rounded-full border flex items-center justify-center text-[0.7rem] transition-all cursor-pointer ${voiceListening ? 'border-amber bg-amber/10 text-amber animate-[voicePulse_1s_infinite]' : 'border-cyan/30 text-cyan hover:border-cyan hover:bg-cyan/5'}`}>
-          {voiceListening ? '●' : '🎤'}
-        </button>
-      </div>
-    )
-  }
-
   return (
-    <div className="absolute inset-0 z-[250] flex flex-col bg-black/40 backdrop-blur-sm"
-      onClick={e => { if (e.target === e.currentTarget) setChatOpen(false) }}>
-
-      {/* Chat messages */}
-      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-3 space-y-3"
-        onClick={e => e.stopPropagation()}>
-
+    <div className={`absolute inset-0 z-50 flex flex-col transition-all duration-500 ${chatOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}>
+      <div className="flex-1 overflow-y-auto p-4" ref={scrollRef}>
         {messages.length === 0 && (
-          <div className="text-center text-hud-dim text-[0.75rem] mt-10 opacity-50">
-            J.A.R.V.I.S. is standing by. Type or speak your request, sir.
+          <div className="text-center text-hud-dim text-sm mt-20">
+            <p className="font-orbitron text-cyan text-lg mb-2">J.A.R.V.I.S. AI Interface</p>
+            <p>Type a message or use voice commands</p>
+            <p className="text-xs mt-2 opacity-60">Prefix with ? to search the web first</p>
           </div>
         )}
-
-        {messages.map(msg => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] ${msg.role === 'user' ? 'ml-8' : 'mr-8'}`}>
-              {/* Label */}
-              <div className={`text-[0.55rem] uppercase tracking-[0.15em] mb-1 ${msg.role === 'user' ? 'text-right text-amber' : 'text-cyan'}`}>
-                {msg.role === 'user' ? 'You' : 'J.A.R.V.I.S.'}
-              </div>
-
-              {/* Bubble */}
-              <div className={`relative rounded p-3 text-[0.8rem] leading-relaxed ${
-                msg.role === 'user'
-                  ? 'bg-amber/5 border border-amber/20 text-white'
-                  : msg.error
-                    ? 'bg-red-900/10 border border-red-500/20 text-red-200'
-                    : 'bg-[rgba(0,30,60,0.7)] border border-cyan/15 text-white'
-              }`}
-                style={msg.role !== 'user' && !msg.error ? { boxShadow: 'inset 0 0 20px rgba(0,240,255,0.03)' } : {}}>
-                <div dangerouslySetInnerHTML={{ __html: markdownToHtml(msg.content) }} />
-
-                {/* Search results */}
-                {msg.searchResults && msg.searchResults.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-cyan/10">
-                    <div className="text-[0.55rem] uppercase tracking-[0.12em] text-cyan mb-2">Web Search Results</div>
-                    <div className="space-y-2">
-                      {msg.searchResults.map((r, i) => (
-                        <a key={i} href={r.url} target="_blank" rel="noopener noreferrer"
-                          className="block bg-white/[0.02] border border-cyan/8 rounded p-2 hover:border-cyan/25 hover:bg-cyan/3 transition-all cursor-pointer">
-                          <div className="text-[0.7rem] text-cyan font-medium truncate">{r.title}</div>
-                          <div className="text-[0.6rem] text-hud-dim mt-0.5 line-clamp-2">{r.snippet}</div>
-                          <div className="text-[0.5rem] text-hud-dim/50 mt-0.5 truncate">{r.url}</div>
-                        </a>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Corner accents */}
-                {msg.role !== 'user' && !msg.error && (
-                  <>
-                    <div className="absolute top-0 left-0 w-2 h-2 border-t border-l border-cyan/40" />
-                    <div className="absolute bottom-0 right-0 w-2 h-2 border-b border-r border-cyan/40" />
-                  </>
-                )}
-              </div>
+        {messages.map((msg) => (
+          <div key={msg.id} className={`mb-3 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+            <div className={`inline-block max-w-[85%] px-3 py-2 rounded text-[0.8rem] ${
+              msg.role === 'user'
+                ? 'bg-cyan/10 border border-cyan/20 text-white'
+                : 'bg-black/40 border border-cyan/10 text-hud-dim'
+            }`}>
+              {msg.role === 'assistant' ? (
+                <div dangerouslySetInnerHTML={{ __html: markdownToHtml(msg.content || '') }} />
+              ) : (
+                <span>{msg.content}</span>
+              )}
+              {msg.searchResults && msg.searchResults.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-cyan/10">
+                  <div className="text-[0.6rem] text-cyan uppercase tracking-wider mb-1">Search Results</div>
+                  {msg.searchResults.map((r, i) => (
+                    <a key={i} href={r.url} target="_blank" rel="noreferrer"
+                      className="block text-[0.65rem] text-blue-hud hover:underline mb-1 truncate">
+                      {r.title}
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
-
-        {/* Typing indicator */}
+        {isSearching && (
+          <div className="text-left mb-3">
+            <div className="inline-block px-3 py-2 rounded bg-black/40 border border-amber/20 text-amber text-[0.75rem]">
+              Searching the web...
+            </div>
+          </div>
+        )}
         {isTyping && (
-          <div className="flex justify-start">
-            <div className="mr-8">
-              <div className="text-[0.55rem] uppercase tracking-[0.15em] mb-1 text-cyan">J.A.R.V.I.S.</div>
-              <div className="bg-[rgba(0,30,60,0.7)] border border-cyan/15 rounded p-3 flex items-center gap-1.5">
-                {isSearching && <span className="text-[0.6rem] text-hud-dim mr-2">Searching web...</span>}
-                <span className="w-1.5 h-1.5 bg-cyan rounded-full animate-[dotPulse_1.2s_infinite]" />
-                <span className="w-1.5 h-1.5 bg-cyan rounded-full animate-[dotPulse_1.2s_infinite_0.2s]" />
-                <span className="w-1.5 h-1.5 bg-cyan rounded-full animate-[dotPulse_1.2s_infinite_0.4s]" />
-              </div>
+          <div className="text-left mb-3">
+            <div className="inline-block px-3 py-2 rounded bg-black/40 border border-cyan/10 text-cyan text-[0.75rem]">
+              <span className="animate-pulse">J.A.R.V.I.S. is typing</span>
+              <span className="inline-block w-1 h-1 bg-cyan rounded-full ml-1 animate-bounce" />
+              <span className="inline-block w-1 h-1 bg-cyan rounded-full ml-0.5 animate-bounce" style={{ animationDelay: '0.2s' }} />
+              <span className="inline-block w-1 h-1 bg-cyan rounded-full ml-0.5 animate-bounce" style={{ animationDelay: '0.4s' }} />
             </div>
           </div>
         )}
       </div>
 
-      {/* Input bar */}
-      <div className="px-4 pb-3" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center gap-2">
-          <form onSubmit={handleSubmit} className="flex-1 flex items-center gap-2 bg-[rgba(0,20,40,0.85)] border border-cyan/30 rounded px-3 py-2 backdrop-blur-md"
-            style={{ boxShadow: '0 0 20px rgba(0,240,255,0.1), inset 0 0 20px rgba(0,240,255,0.03)' }}>
-            <span className="text-cyan text-[0.7rem] font-orbitron mr-1">❯</span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Ask J.A.R.V.I.S. anything... (?prefix for web search)"
-              className="flex-1 bg-transparent border-none outline-none text-white text-[0.8rem] font-rajdhani placeholder:text-hud-dim/50"
-              autoFocus
-            />
-            <button type="submit" disabled={isTyping} className="text-cyan text-[0.7rem] hover:text-white transition-colors cursor-pointer disabled:opacity-30 font-orbitron">
-              SEND
-            </button>
-          </form>
-          <button
-            onClick={onVoiceToggle}
-            className={`w-9 h-9 rounded-full border flex items-center justify-center text-[0.7rem] transition-all cursor-pointer ${voiceListening ? 'border-amber bg-amber/10 text-amber animate-[voicePulse_1s_infinite]' : 'border-cyan/30 text-cyan hover:border-cyan hover:bg-cyan/5'}`}>
-            {voiceListening ? '●' : '🎤'}
-          </button>
-          <button onClick={onClear} className="w-9 h-9 rounded-full border border-cyan/20 text-hud-dim hover:border-cyan hover:text-cyan transition-all cursor-pointer text-[0.65rem]">
-            CLR
-          </button>
-        </div>
-      </div>
+      <form onSubmit={handleSubmit} className="p-3 border-t border-cyan/10 bg-black/60 backdrop-blur flex gap-2">
+        <button type="button" onClick={onVoiceToggle}
+          className={`px-2 rounded border text-[0.7rem] transition-all ${voiceListening ? 'border-amber text-amber bg-amber/10' : 'border-cyan/20 text-hud-dim hover:border-cyan'}`}>
+          {voiceListening ? '●' : '○'}
+        </button>
+        <input
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          placeholder="Ask J.A.R.V.I.S. anything... (? to search)"
+          className="flex-1 bg-black/40 border border-cyan/15 rounded px-3 py-1.5 text-[0.8rem] text-white placeholder:text-hud-dim/50 focus:outline-none focus:border-cyan/40"
+        />
+        <button type="submit" className="px-3 py-1.5 bg-cyan/10 border border-cyan/30 rounded text-cyan text-[0.75rem] hover:bg-cyan/20 transition-all">
+          Send
+        </button>
+        <button type="button" onClick={onClear} className="px-2 py-1.5 border border-cyan/15 rounded text-hud-dim text-[0.7rem] hover:border-cyan/30 transition-all">
+          Clear
+        </button>
+        <button type="button" onClick={() => setChatOpen(false)} className="px-2 py-1.5 border border-cyan/15 rounded text-hud-dim text-[0.7rem] hover:border-cyan/30 transition-all">
+          ✕
+        </button>
+      </form>
     </div>
   )
 }

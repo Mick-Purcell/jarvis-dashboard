@@ -6,17 +6,17 @@ function randomWalk(prev, min, max, step = 3) {
 }
 
 export function useSimulatedData() {
-  const [data, setData] = useState({ cpu: 30, ram: 45, swap: 20 })
+  const [data, setData] = useState({ cpu: 35, ram: 58, swap: 42 })
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const t = setInterval(() => {
       setData(prev => ({
-        cpu: randomWalk(prev.cpu, 5, 95),
-        ram: randomWalk(prev.ram, 20, 85),
-        swap: randomWalk(prev.swap, 5, 70),
+        cpu: randomWalk(prev.cpu, 10, 90),
+        ram: randomWalk(prev.ram, 30, 85),
+        swap: randomWalk(prev.swap, 10, 70),
       }))
-    }, 2000)
-    return () => clearInterval(interval)
+    }, 2500)
+    return () => clearInterval(t)
   }, [])
 
   return data
