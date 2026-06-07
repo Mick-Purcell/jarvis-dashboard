@@ -11,7 +11,6 @@ const PORT = process.env.PORT || 3000
 app.use(cors())
 app.use(express.json())
 
-// ====== HEALTH ======
 app.get('/api/health', (_req, res) => {
   res.json({
     status: 'online',
@@ -21,7 +20,6 @@ app.get('/api/health', (_req, res) => {
   })
 })
 
-// ====== WEB SEARCH ======
 app.get('/api/search', async (req, res) => {
   const { q } = req.query
   if (!q) return res.status(400).json({ error: 'Missing query parameter "q"' })
@@ -34,12 +32,10 @@ app.get('/api/search', async (req, res) => {
   }
 })
 
-// ====== CHAT STREAM (SSE) ======
 app.post('/api/chat', async (req, res) => {
   const { message, history = [], searchFirst = false } = req.body
   if (!message) return res.status(400).json({ error: 'Missing message' })
 
-  // Determine which API key / endpoint to use
   const apiKey = process.env.OPENAI_API_KEY || process.env.OPENROUTER_API_KEY || process.env.GEMINI_API_KEY
   const baseURL = process.env.OPENAI_BASE_URL || process.env.OPENROUTER_BASE_URL || 'https://api.openai.com/v1'
   const model = process.env.LLM_MODEL || 'gpt-4o-mini'
@@ -68,9 +64,7 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's personal AI assistant. You are witty, concise, highly intelligent, and speak with a refined British butler tone. You address the user as "sir". Keep responses brief unless asked for detail. Use technical precision when discussing code or systems.
-
-${searchResults.length > 0 ? `The user asked about: "${message}". Here are recent web search results you may reference:\n${searchResults.slice(0, 5).map((r, i) => `${i + 1}. ${r.title}\n${r.snippet}\nURL: ${r.url}`).join('\n\n')}` : ''}`
+  const systemPrompt = `You are J.A.R.V.I.S. (Just A Rather Very Intelligent System), Tony Stark's personal AI assistant. You are witty, concise, highly intelligent, and speak with a refined British butler tone. You address the user as "sir". Keep responses brief unless asked for detail. Use technical precision when discussing code or systems.\n\n${searchResults.length > 0 ? `The user asked about: "${message}". Here are recent web search results you may reference:\n${searchResults.slice(0, 5).map((r, i) => `${i + 1}. ${r.title}\n${r.snippet}\nURL: ${r.url}`).join('\n\n')}` : ''}`
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -86,11 +80,7 @@ ${searchResults.length > 0 ? `The user asked about: "${message}". Here are recen
         'Authorization': `Bearer ${apiKey}`
       },
       body: JSON.stringify({
-        model,
-        messages,
-        stream: true,
-        temperature: 0.7,
-        max_tokens: 2048
+        model, messages, stream: true, temperature: 0.7, max_tokens: 2048
       })
     })
 
@@ -133,7 +123,6 @@ ${searchResults.length > 0 ? `The user asked about: "${message}". Here are recen
   }
 })
 
-// ====== SERVE STATIC FRONTEND ======
 const staticPath = process.env.STATIC_PATH || './dist'
 app.use(express.static(staticPath))
 app.get('*', (_req, res) => {

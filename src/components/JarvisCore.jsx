@@ -51,11 +51,9 @@ export default function JarvisCore({ isListening, glitchKey }) {
 
       ctx.clearRect(0, 0, w, h)
 
-      // Mouse parallax offset
       const mx = hoverRef.current ? (mouseRef.current.x - 0.5) * 20 : 0
       const my = hoverRef.current ? (mouseRef.current.y - 0.5) * 20 : 0
 
-      // Outer glow rings (pulsing)
       for (let i = 3; i >= 1; i--) {
         const r = 90 + i * 25 + Math.sin(pulse + i * 0.5) * 5
         const alpha = 0.06 + Math.sin(pulse + i) * 0.03
@@ -66,7 +64,6 @@ export default function JarvisCore({ isListening, glitchKey }) {
         ctx.stroke()
       }
 
-      // Rotating tick ring
       const tickR = 155
       ctx.save()
       ctx.translate(cx + mx * 0.2, cy + my * 0.2)
@@ -83,7 +80,6 @@ export default function JarvisCore({ isListening, glitchKey }) {
       }
       ctx.restore()
 
-      // Secondary rotating ring (counter)
       ctx.save()
       ctx.translate(cx + mx * 0.15, cy + my * 0.15)
       ctx.rotate(-ring * 0.15)
@@ -97,7 +93,6 @@ export default function JarvisCore({ isListening, glitchKey }) {
       }
       ctx.restore()
 
-      // Geometric bracket above JARVIS text
       const bracketY = cy - 70
       const bracketW = 60
       const bracketH = 25
@@ -110,7 +105,6 @@ export default function JarvisCore({ isListening, glitchKey }) {
       ctx.lineWidth = 1.5
       ctx.stroke()
 
-      // Top accent line
       ctx.beginPath()
       ctx.moveTo(cx - 30, bracketY - 8)
       ctx.lineTo(cx + 30, bracketY - 8)
@@ -118,7 +112,6 @@ export default function JarvisCore({ isListening, glitchKey }) {
       ctx.lineWidth = 1
       ctx.stroke()
 
-      // JARVIS text
       ctx.fillStyle = '#fff'
       ctx.font = 'bold 18px Orbitron, monospace'
       ctx.textAlign = 'center'
@@ -128,7 +121,6 @@ export default function JarvisCore({ isListening, glitchKey }) {
       ctx.fillText('JARVIS', cx + mx * 0.1, cy - 40 + my * 0.1)
       ctx.shadowBlur = 0
 
-      // Vertical guide lines
       ctx.beginPath()
       ctx.moveTo(cx, bracketY - 30)
       ctx.lineTo(cx, cy - 55)
@@ -138,32 +130,27 @@ export default function JarvisCore({ isListening, glitchKey }) {
       ctx.lineWidth = 0.5
       ctx.stroke()
 
-      // Arc reactor core
       const coreGlow = isListening ? 30 + Math.sin(pulse * 3) * 10 : 20 + Math.sin(pulse * 1.5) * 8
       const coreColor = isListening ? '#ff8c00' : '#00f0ff'
 
-      // Outer reactor ring
       ctx.beginPath()
       ctx.arc(cx + mx * 0.05, cy + my * 0.05, 35, 0, Math.PI * 2)
       ctx.strokeStyle = `rgba(0, 240, 255, ${0.5 + Math.sin(pulse) * 0.15})`
       ctx.lineWidth = 2
       ctx.stroke()
 
-      // Middle reactor ring
       ctx.beginPath()
       ctx.arc(cx + mx * 0.05, cy + my * 0.05, 25, 0, Math.PI * 2)
       ctx.strokeStyle = `rgba(0, 240, 255, ${0.3 + Math.sin(pulse * 1.2) * 0.1})`
       ctx.lineWidth = 1.5
       ctx.stroke()
 
-      // Inner reactor ring
       ctx.beginPath()
       ctx.arc(cx + mx * 0.05, cy + my * 0.05, 15, 0, Math.PI * 2)
       ctx.strokeStyle = `rgba(0, 240, 255, ${0.4 + Math.sin(pulse * 1.8) * 0.15})`
       ctx.lineWidth = 1
       ctx.stroke()
 
-      // Core glow
       ctx.beginPath()
       ctx.arc(cx + mx * 0.05, cy + my * 0.05, 8, 0, Math.PI * 2)
       ctx.fillStyle = coreColor
@@ -172,13 +159,11 @@ export default function JarvisCore({ isListening, glitchKey }) {
       ctx.fill()
       ctx.shadowBlur = 0
 
-      // Inner core bright spot
       ctx.beginPath()
       ctx.arc(cx + mx * 0.05 - 2, cy + my * 0.05 - 2, 3, 0, Math.PI * 2)
       ctx.fillStyle = '#fff'
       ctx.fill()
 
-      // Side bracket decorations
       const bracketOffset = 50
       for (const side of [-1, 1]) {
         const bx = cx + side * bracketOffset + mx * 0.1
@@ -192,7 +177,6 @@ export default function JarvisCore({ isListening, glitchKey }) {
         ctx.stroke()
       }
 
-      // Data stream particles from core
       if (isListening) {
         for (let i = 0; i < 8; i++) {
           const angle = (i / 8) * Math.PI * 2 + pulse
