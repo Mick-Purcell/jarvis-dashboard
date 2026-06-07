@@ -4,50 +4,33 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>J.A.R.V.I.S. — Just A Rather Very Intelligent System</title>
-<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Share+Tech+Mono&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --cyan: #00e5ff;
-    --cyan-dim: #00b8d4;
-    --blue: #2979ff;
-    --blue-glow: #448aff;
-    --orange: #ff9100;
-    --amber: #ffc400;
-    --red: #ff1744;
-    --white: #e0f7fa;
-    --black: #000000;
-    --surface: #0a0a0a;
-    --panel: rgba(10, 15, 20, 0.88);
-    --glass: rgba(0, 180, 255, 0.04);
-    --grid-line: rgba(0, 229, 255, 0.08);
-  }
-
   * { margin: 0; padding: 0; box-sizing: border-box; }
-
+  :root {
+    --cyan: #00f0ff;
+    --blue: #0088ff;
+    --amber: #ff8c00;
+    --red: #ff3333;
+    --dim: #88aabb;
+    --bg: #000000;
+    --panel-bg: rgba(0, 20, 40, 0.6);
+    --panel-border: rgba(0, 240, 255, 0.18);
+    --glow-cyan: 0 0 6px rgba(0, 240, 255, 0.6), 0 0 20px rgba(0, 240, 255, 0.2);
+    --glow-amber: 0 0 6px rgba(255, 140, 0, 0.6), 0 0 20px rgba(255, 140, 0, 0.2);
+  }
   body {
-    background: var(--black);
-    color: var(--white);
-    font-family: 'Rajdhani', sans-serif;
+    background: var(--bg);
+    color: #fff;
+    font-family: 'Rajdhani', 'Segoe UI', sans-serif;
     overflow: hidden;
-    width: 100vw;
     height: 100vh;
-    position: relative;
+    width: 100vw;
+    user-select: none;
   }
 
-  /* Background grid and scanline effects */
-  body::before {
-    content: '';
-    position: fixed;
-    inset: 0;
-    background:
-      linear-gradient(90deg, var(--grid-line) 1px, transparent 1px),
-      linear-gradient(0deg, var(--grid-line) 1px, transparent 1px);
-    background-size: 60px 60px;
-    pointer-events: none;
-    z-index: 0;
-  }
-
-  body::after {
+  /* Scanline overlay */
+  .scanlines::after {
     content: '';
     position: fixed;
     inset: 0;
@@ -55,1784 +38,1199 @@
       0deg,
       transparent,
       transparent 2px,
-      rgba(0,0,0,0.15) 2px,
-      rgba(0,0,0,0.15) 4px
+      rgba(0,0,0,0.12) 2px,
+      rgba(0,0,0,0.12) 4px
     );
     pointer-events: none;
-    z-index: 9999;
-    opacity: 0.3;
+    z-index: 9998;
   }
 
-  .glow-text {
-    text-shadow:
-      0 0 5px var(--cyan),
-      0 0 10px var(--cyan-dim),
-      0 0 20px rgba(0,229,255,0.3);
+  /* Subtle grid background */
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(0,240,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,240,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
   }
 
-  .glow-orange {
-    text-shadow:
-      0 0 5px var(--orange),
-      0 0 10px var(--amber),
-      0 0 20px rgba(255,145,0,0.3);
+  /* Start overlay */
+  .start-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.92);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 10000;
+    cursor: pointer;
+    transition: opacity 0.6s ease;
+  }
+  .start-overlay h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 2.2rem;
+    letter-spacing: 0.25em;
+    color: var(--cyan);
+    text-shadow: var(--glow-cyan);
+    margin-bottom: 16px;
+  }
+  .start-overlay p {
+    color: var(--dim);
+    font-size: 0.95rem;
+    letter-spacing: 0.1em;
+  }
+  .start-overlay .pulse-ring {
+    width: 80px; height: 80px;
+    border: 2px solid var(--cyan);
+    border-radius: 50%;
+    margin-bottom: 24px;
+    animation: ringPulse 2s infinite ease-in-out;
+    box-shadow: var(--glow-cyan);
+  }
+  @keyframes ringPulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.15); opacity: 0.5; }
   }
 
-  .glow-blue {
-    text-shadow:
-      0 0 5px var(--blue),
-      0 0 10px var(--blue-glow),
-      0 0 20px rgba(41,121,255,0.3);
-  }
-
-  /* Main HUD Grid */
-  .hud-container {
+  /* HUD Layout */
+  .hud {
+    display: grid;
+    grid-template-columns: 240px 1fr 300px;
+    grid-template-rows: 90px 1fr 140px;
+    grid-template-areas:
+      "left header right"
+      "left center right"
+      "footer footer footer";
+    gap: 14px;
+    padding: 14px;
+    height: 100vh;
     position: relative;
     z-index: 1;
-    width: 100vw;
-    height: 100vh;
-    display: grid;
-    grid-template-columns: 220px 180px 1fr 320px 220px;
-    grid-template-rows: 160px 1fr 200px 80px;
-    grid-template-areas:
-      "topLeft leftCenter header topRight dateRight"
-      "sidebar leftCenter center topRight gaugesRight"
-      "sidebar bottomLeft bottomCenter bottomCenter media"
-      "taskbar taskbar taskbar taskbar taskbar";
-    gap: 8px;
-    padding: 10px;
   }
 
-  /* Panel base style */
   .panel {
-    background: var(--panel);
-    border: 1px solid rgba(0,229,255,0.15);
-    border-radius: 4px;
-    padding: 10px;
+    background: var(--panel-bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 3px;
+    padding: 14px;
     position: relative;
-    overflow: hidden;
+    box-shadow: inset 0 0 30px rgba(0, 240, 255, 0.04);
+    backdrop-filter: blur(4px);
   }
-
   .panel::before {
     content: '';
     position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 2px;
+    top: -1px; left: 18px; right: 18px;
+    height: 1px;
     background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-    opacity: 0.6;
+  }
+  .panel::after {
+    content: '';
+    position: absolute;
+    bottom: -1px; left: 18px; right: 18px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    opacity: 0.3;
   }
 
-  .panel-title {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--cyan);
+  .label {
+    font-size: 0.6rem;
     text-transform: uppercase;
-    margin-bottom: 6px;
-    border-bottom: 1px solid rgba(0,229,255,0.1);
-    padding-bottom: 4px;
+    letter-spacing: 0.2em;
+    color: var(--dim);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+  .neon { color: var(--cyan); text-shadow: var(--glow-cyan); }
+  .amber { color: var(--amber); text-shadow: var(--glow-amber); }
+  .value {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.1rem;
+    letter-spacing: 0.05em;
   }
 
-  /* TOP LEFT */
-  .top-left {
-    grid-area: topLeft;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  /* Grid areas */
+  .left { grid-area: left; display: flex; flex-direction: column; gap: 14px; }
+  .header { grid-area: header; display: flex; align-items: center; justify-content: center; }
+  .center { grid-area: center; display: flex; align-items: center; justify-content: center; position: relative; }
+  .right { grid-area: right; display: flex; flex-direction: column; gap: 14px; }
+  .footer { grid-area: footer; display: flex; align-items: center; justify-content: space-between; padding: 0 24px; }
+
+  /* Profile block */
+  .profile-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 0.12em;
+    color: #fff;
+  }
+  .profile-sub {
+    font-size: 0.65rem;
+    color: var(--dim);
+    margin-top: 2px;
+    letter-spacing: 0.08em;
   }
 
-  .user-info {
-    font-size: 11px;
-    color: var(--white);
-    opacity: 0.9;
-  }
-
-  .user-info .build {
-    font-size: 9px;
-    color: var(--cyan-dim);
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  .ram-gauge {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    font-size: 11px;
-  }
-
-  .ram-gauge canvas {
-    width: 32px;
-    height: 32px;
-  }
-
-  .power-buttons {
-    display: flex;
-    gap: 4px;
-  }
-
+  /* Power buttons */
+  .power-btns { display: flex; gap: 6px; margin-top: 10px; }
   .power-btn {
     flex: 1;
-    padding: 4px 2px;
-    font-size: 8px;
-    font-family: 'Orbitron', sans-serif;
-    background: rgba(255,23,68,0.1);
-    border: 1px solid rgba(255,23,68,0.3);
-    color: var(--red);
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(0,240,255,0.15);
+    color: var(--dim);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 5px 2px;
     cursor: pointer;
-    border-radius: 2px;
     transition: all 0.2s;
-    text-align: center;
-  }
-
-  .power-btn:hover {
-    background: rgba(255,23,68,0.3);
-    box-shadow: 0 0 8px rgba(255,23,68,0.4);
-  }
-
-  .network-info {
-    font-size: 9px;
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--cyan-dim);
-    line-height: 1.5;
-  }
-
-  .mini-calendar {
-    display: grid;
-    grid-template-columns: repeat(7, 1fr);
-    gap: 1px;
-    font-size: 9px;
-    text-align: center;
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  .mini-calendar .day-label {
-    color: var(--orange);
-    font-weight: bold;
-    font-size: 8px;
-  }
-
-  .mini-calendar .day {
-    padding: 2px;
-    color: rgba(224,247,250,0.6);
-  }
-
-  .mini-calendar .day.today {
-    background: rgba(0,229,255,0.2);
-    color: var(--cyan);
     border-radius: 2px;
   }
-
-  /* SIDEBAR */
-  .sidebar {
-    grid-area: sidebar;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+  .power-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: rgba(0,240,255,0.06);
   }
 
-  .theme-label {
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    letter-spacing: 3px;
-    color: var(--orange);
+  /* Gauge */
+  .gauge-wrap { position: relative; width: 130px; height: 130px; margin: 0 auto; }
+  .gauge-wrap canvas { width: 100%; height: 100%; display: block; }
+  .gauge-val {
     position: absolute;
-    left: 4px;
-    top: 50%;
-    transform: translateY(-50%) rotate(180deg);
-    opacity: 0.7;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: 'Orbitron', monospace;
+    font-size: 1.3rem;
+    color: #fff;
+    pointer-events: none;
   }
 
-  .app-list {
-    margin-left: 18px;
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-  }
-
+  /* App launcher */
+  .app-list { display: flex; flex-direction: column; gap: 6px; }
   .app-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 5px 8px;
-    background: linear-gradient(90deg, rgba(80,80,80,0.3), transparent);
-    border-left: 3px solid var(--orange);
-    border-radius: 0 4px 4px 0;
+    gap: 10px;
+    padding: 6px 8px;
+    background: rgba(255,255,255,0.02);
+    border-left: 2px solid var(--amber);
     cursor: pointer;
     transition: all 0.2s;
-    font-size: 11px;
   }
-
   .app-item:hover {
-    background: linear-gradient(90deg, rgba(0,229,255,0.15), transparent);
+    background: rgba(0,240,255,0.06);
     border-left-color: var(--cyan);
-    padding-left: 12px;
   }
-
   .app-icon {
-    width: 16px;
-    height: 16px;
-    border-radius: 3px;
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    color: #fff;
+    background: rgba(255,140,0,0.15);
+    border-radius: 2px;
+  }
+  .app-item:hover .app-icon { background: rgba(0,240,255,0.2); }
+  .app-name { font-size: 0.75rem; letter-spacing: 0.05em; }
+
+  /* Centerpiece */
+  .centerpiece {
+    position: relative;
+    width: 100%;
+    height: 100%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 10px;
-    background: rgba(255,255,255,0.1);
   }
-
-  .bot-section {
-    margin-top: auto;
+  .jarvis-title {
+    position: absolute;
+    top: 10px;
     text-align: center;
-    position: relative;
   }
-
-  .bot-figure {
-    width: 50px;
-    height: 50px;
-    margin: 0 auto;
-    position: relative;
+  .jarvis-title h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: 1.4rem;
+    letter-spacing: 0.3em;
+    color: #fff;
+    text-shadow: 0 0 10px rgba(0,240,255,0.4);
   }
-
-  .hologram-projection {
-    background: rgba(0,180,255,0.08);
-    border: 1px solid rgba(0,229,255,0.2);
-    border-radius: 4px;
-    padding: 6px;
-    font-size: 9px;
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--cyan-dim);
-    line-height: 1.6;
+  .jarvis-title p {
+    font-size: 0.7rem;
+    color: var(--dim);
+    letter-spacing: 0.15em;
     margin-top: 4px;
   }
 
-  /* LEFT CENTER */
-  .left-center {
-    grid-area: leftCenter;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-  }
-
-  .jarvis-dial {
-    position: relative;
-    width: 160px;
-    height: 160px;
-  }
-
-  .jarvis-dial canvas {
-    width: 100%;
-    height: 100%;
-  }
-
-  .jarvis-label {
+  /* Quick links */
+  .quick-links {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 14px;
-    font-weight: 700;
-    color: var(--white);
-    letter-spacing: 3px;
-    text-shadow: 0 0 10px var(--cyan);
-  }
-
-  .vertical-scale {
-    position: absolute;
-    left: 0;
+    left: 30px;
     top: 50%;
     transform: translateY(-50%);
     display: flex;
-    flex-direction: column-reverse;
-    gap: 8px;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 9px;
-    color: var(--orange);
-  }
-
-  /* HEADER / CENTER TOP */
-  .header-area {
-    grid-area: header;
-    display: flex;
     flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding-top: 10px;
+    gap: 6px;
   }
-
-  .jarvis-header {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 28px;
-    font-weight: 900;
-    color: var(--cyan);
-    letter-spacing: 8px;
-    text-shadow:
-      0 0 10px var(--cyan),
-      0 0 30px rgba(0,229,255,0.4),
-      0 0 60px rgba(0,229,255,0.2);
-    margin-bottom: 4px;
-  }
-
-  .jarvis-subtitle {
-    font-size: 12px;
-    color: var(--white);
-    opacity: 0.8;
-    letter-spacing: 1px;
-    margin-bottom: 16px;
-  }
-
-  .header-content {
-    display: flex;
-    gap: 30px;
-    align-items: flex-start;
-    width: 100%;
-    justify-content: center;
-  }
-
-  .schematic-circle {
-    width: 80px;
-    height: 80px;
-    border: 1px dashed rgba(255,255,255,0.3);
-    border-radius: 50%;
-    position: relative;
-    opacity: 0.6;
-  }
-
-  .schematic-circle::before,
-  .schematic-circle::after {
-    content: '';
-    position: absolute;
-    border: 1px dashed rgba(255,255,255,0.2);
-    border-radius: 50%;
-  }
-
-  .schematic-circle::before { inset: 15%; }
-  .schematic-circle::after { inset: 30%; }
-
-  .quick-links {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-  }
-
   .quick-link {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 10px;
-    letter-spacing: 2px;
-    color: var(--blue-glow);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    color: var(--dim);
     cursor: pointer;
-    padding: 2px 8px;
+    padding: 3px 8px;
+    border-left: 1px solid transparent;
     transition: all 0.2s;
-    border-left: 2px solid transparent;
   }
-
   .quick-link:hover {
     color: var(--cyan);
     border-left-color: var(--cyan);
-    background: linear-gradient(90deg, rgba(0,229,255,0.1), transparent);
-    text-shadow: 0 0 8px var(--cyan);
+    text-shadow: var(--glow-cyan);
   }
 
-  /* CENTERPIECE */
-  .centerpiece {
-    grid-area: center;
+  /* Right side widgets */
+  .sys-tabs {
     display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
+    gap: 8px;
+    margin-bottom: 10px;
   }
-
-  .ironman-container {
-    position: relative;
-    width: 420px;
-    height: 420px;
-  }
-
-  .ironman-svg {
-    width: 100%;
-    height: 100%;
-    filter: drop-shadow(0 0 20px rgba(0,229,255,0.3));
-  }
-
-  .arc-reactor-glow {
-    position: absolute;
-    top: 58%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(0,229,255,0.8), transparent 70%);
-    animation: pulse-glow 2s ease-in-out infinite;
-    pointer-events: none;
-  }
-
-  @keyframes pulse-glow {
-    0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
-    50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-  }
-
-  /* TOP RIGHT */
-  .top-right {
-    grid-area: topRight;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-  }
-
-  .drive-tabs {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 3px;
-  }
-
-  .drive-tab {
-    padding: 3px 8px;
-    font-size: 9px;
-    font-family: 'Orbitron', sans-serif;
-    background: rgba(0,180,255,0.08);
-    border: 1px solid rgba(0,229,255,0.15);
-    color: var(--cyan-dim);
+  .sys-tab {
+    font-size: 0.55rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--dim);
     cursor: pointer;
-    border-radius: 2px;
+    padding-bottom: 2px;
+    border-bottom: 1px solid transparent;
     transition: all 0.2s;
   }
-
-  .drive-tab:hover, .drive-tab.active {
-    background: rgba(0,229,255,0.2);
+  .sys-tab:hover, .sys-tab.active {
     color: var(--cyan);
-    border-color: var(--cyan);
+    border-bottom-color: var(--cyan);
   }
+  .sys-metric { display: flex; justify-content: space-between; margin-bottom: 5px; font-size: 0.7rem; }
+  .sys-metric span:first-child { color: var(--dim); }
+  .sys-metric span:last-child { font-family: 'Orbitron', monospace; color: #fff; }
 
-  .system-monitor {
-    font-size: 10px;
-    font-family: 'Share Tech Mono', monospace;
-    line-height: 1.6;
-  }
-
-  .monitor-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 2px 0;
-    border-bottom: 1px solid rgba(0,229,255,0.05);
-  }
-
-  .monitor-label { color: var(--cyan-dim); }
-  .monitor-value { color: var(--orange); }
-
-  .tech-schematics {
-    display: flex;
-    gap: 8px;
-    margin-top: 4px;
-  }
-
-  .schem-box {
-    flex: 1;
-    aspect-ratio: 1;
-    border: 1px dashed rgba(255,255,255,0.15);
-    border-radius: 4px;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .hex-cluster {
-    display: flex;
-    gap: 4px;
-    margin-top: 4px;
-    flex-wrap: wrap;
-  }
-
-  .hex {
-    width: 28px;
-    height: 32px;
-    background: rgba(0,180,255,0.1);
-    clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 10px;
-    color: var(--cyan);
-    border: 1px solid rgba(0,229,255,0.2);
-  }
-
-  .weather-widget {
-    font-size: 9px;
-    font-family: 'Share Tech Mono', monospace;
-    margin-top: 4px;
-  }
-
-  .weather-row {
-    display: flex;
-    justify-content: space-between;
-    padding: 1px 0;
-    color: var(--cyan-dim);
-  }
-
-  .forecast {
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px solid rgba(0,229,255,0.1);
-  }
-
-  /* DATE RIGHT */
-  .date-right {
-    grid-area: dateRight;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding-top: 20px;
-  }
-
-  .big-date {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 72px;
-    font-weight: 900;
-    color: var(--white);
-    line-height: 1;
-    text-shadow: 0 0 20px rgba(255,255,255,0.2);
-  }
-
-  .big-month {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 20px;
-    color: var(--orange);
-    letter-spacing: 6px;
-    margin-top: 4px;
-  }
-
-  .big-day {
-    font-size: 14px;
-    color: var(--white);
-    letter-spacing: 4px;
-    margin-top: 2px;
-    text-transform: uppercase;
-  }
-
-  .vertical-bar {
-    position: absolute;
-    right: 8px;
-    top: 20%;
-    bottom: 20%;
-    width: 4px;
-    background: linear-gradient(180deg, transparent, var(--orange), transparent);
-    border-radius: 2px;
-    opacity: 0.6;
-  }
-
-  /* GAUGES RIGHT */
-  .gauges-right {
-    grid-area: gaugesRight;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 12px;
-  }
-
-  .time-display {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 24px;
-    color: var(--cyan);
-    letter-spacing: 2px;
-  }
-
-  .radial-menu {
-    width: 180px;
-    height: 180px;
-    position: relative;
-  }
-
-  .radial-menu canvas {
-    width: 100%;
-    height: 100%;
-  }
-
-  .temp-gauge {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 16px;
-    color: var(--orange);
-    text-align: center;
-  }
-
-  .ip-display {
-    font-size: 10px;
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--cyan-dim);
-  }
-
-  /* BOTTOM CENTER */
-  .bottom-center {
-    grid-area: bottomCenter;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-
+  /* Big clock footer */
   .big-clock {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 64px;
-    font-weight: 900;
-    color: var(--white);
+    font-family: 'Orbitron', monospace;
+    font-size: 3.2rem;
+    letter-spacing: 0.08em;
+    color: #fff;
+    text-shadow: 0 0 15px rgba(0,240,255,0.3), 0 0 40px rgba(0,240,255,0.1);
     line-height: 1;
-    position: relative;
-    text-shadow:
-      0 0 10px rgba(255,255,255,0.3),
-      4px 4px 0px rgba(0,0,0,0.5),
-      -1px -1px 0px rgba(0,229,255,0.2);
   }
-
-  .big-clock .shadow {
-    position: absolute;
-    top: 6px;
-    left: 6px;
-    color: rgba(0,229,255,0.08);
-    z-index: -1;
-  }
-
-  .bottom-date {
-    font-size: 14px;
-    color: var(--cyan-dim);
-    letter-spacing: 3px;
-  }
-
-  .status-report {
-    font-size: 11px;
-    color: var(--white);
-    opacity: 0.9;
-    text-align: center;
-    font-style: italic;
-  }
-
-  .year-progress {
-    display: flex;
-    gap: 16px;
-    font-size: 10px;
-    font-family: 'Share Tech Mono', monospace;
-    color: var(--cyan-dim);
-  }
-
-  .mini-graphs {
-    display: flex;
-    gap: 8px;
+  .footer-date {
+    font-size: 0.75rem;
+    color: var(--dim);
+    letter-spacing: 0.1em;
     margin-top: 4px;
   }
+  .footer-status {
+    font-size: 0.65rem;
+    color: var(--cyan);
+    letter-spacing: 0.08em;
+    margin-top: 6px;
+    opacity: 0.8;
+  }
+  .year-progress { display: flex; gap: 16px; margin-top: 8px; }
+  .yr-item { text-align: center; }
+  .yr-item .yr-val { font-family: 'Orbitron', monospace; font-size: 0.85rem; color: var(--amber); }
+  .yr-item .yr-label { font-size: 0.5rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; }
 
-  .mini-bar {
-    width: 60px;
-    height: 24px;
-    background: rgba(0,180,255,0.05);
-    border: 1px solid rgba(0,229,255,0.1);
-    position: relative;
-    overflow: hidden;
+  /* Voice button */
+  .voice-btn {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    z-index: 100;
+    background: rgba(0,20,40,0.8);
+    border: 1px solid var(--cyan);
+    color: var(--cyan);
+    font-family: 'Orbitron', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    padding: 10px 18px;
+    border-radius: 3px;
+    cursor: pointer;
+    box-shadow: var(--glow-cyan);
+    transition: all 0.3s;
+  }
+  .voice-btn:hover { background: rgba(0,240,255,0.1); }
+  .voice-btn.listening {
+    border-color: var(--amber);
+    color: var(--amber);
+    box-shadow: var(--glow-amber);
+    animation: voicePulse 1s infinite;
+  }
+  @keyframes voicePulse {
+    0%, 100% { box-shadow: 0 0 6px rgba(255,140,0,0.4); }
+    50% { box-shadow: 0 0 20px rgba(255,140,0,0.8); }
   }
 
-  /* MEDIA PLAYER */
-  .media-player {
-    grid-area: media;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    justify-content: center;
-  }
-
-  .track-info {
+  /* Listening indicator */
+  .listen-indicator {
+    position: fixed;
+    top: 20px; right: 20px;
+    z-index: 100;
     display: flex;
     align-items: center;
     gap: 8px;
+    background: rgba(0,0,0,0.6);
+    padding: 6px 12px;
+    border-radius: 3px;
+    border: 1px solid rgba(0,240,255,0.2);
+  }
+  .listen-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    box-shadow: 0 0 6px var(--amber);
+  }
+  .listen-dot.active {
+    background: var(--cyan);
+    box-shadow: 0 0 8px var(--cyan);
+    animation: dotPulse 1.2s infinite;
+  }
+  @keyframes dotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(1.3); }
+  }
+  .listen-text {
+    font-size: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--dim);
   }
 
-  .album-art {
-    width: 40px;
-    height: 40px;
-    border-radius: 4px;
-    background: linear-gradient(135deg, var(--blue), var(--cyan));
+  /* Media player */
+  .media-player {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-size: 9px;
-    font-family: 'Orbitron', sans-serif;
-    color: var(--white);
-    position: relative;
-    overflow: hidden;
+    gap: 10px;
   }
-
-  .album-art::before {
-    content: '';
-    position: absolute;
-    inset: -20px;
-    background: conic-gradient(from 0deg, transparent, var(--cyan), transparent, var(--blue), transparent);
-    animation: rotate 4s linear infinite;
-    opacity: 0.5;
+  .media-art {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #ff00cc, #3333ff);
+    border-radius: 3px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem;
+    color: #fff;
+    font-family: 'Orbitron', monospace;
   }
-
-  @keyframes rotate {
-    to { transform: rotate(360deg); }
-  }
-
-  .track-meta {
-    flex: 1;
-  }
-
-  .track-time {
-    font-size: 10px;
-    color: var(--cyan);
-    font-family: 'Share Tech Mono', monospace;
-  }
-
-  .track-name {
-    font-size: 10px;
-    color: var(--white);
-    opacity: 0.9;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
+  .media-info { flex: 1; }
+  .media-track { font-size: 0.75rem; color: #fff; letter-spacing: 0.05em; }
+  .media-artist { font-size: 0.6rem; color: var(--dim); margin-top: 1px; }
   .media-controls {
     display: flex;
+    gap: 8px;
+    margin-top: 6px;
+  }
+  .media-btn {
+    background: none;
+    border: 1px solid rgba(0,240,255,0.2);
+    color: var(--cyan);
+    width: 22px; height: 22px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: all 0.2s;
+  }
+  .media-btn:hover { border-color: var(--cyan); background: rgba(0,240,255,0.08); }
+
+  /* Calendar grid */
+  .cal-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 2px;
+    text-align: center;
+    font-size: 0.6rem;
+  }
+  .cal-day-h { color: var(--dim); font-size: 0.5rem; margin-bottom: 3px; }
+  .cal-day { padding: 2px; color: var(--dim); }
+  .cal-day.today { color: var(--cyan); font-weight: 700; text-shadow: var(--glow-cyan); }
+
+  /* Vertical scale */
+  .vscale {
+    position: absolute;
+    left: 8px; top: 50%;
+    transform: translateY(-50%);
+    display: flex;
+    flex-direction: column;
     align-items: center;
     gap: 8px;
   }
-
-  .media-btn {
-    width: 24px;
-    height: 24px;
-    background: rgba(0,229,255,0.1);
-    border: 1px solid rgba(0,229,255,0.2);
-    color: var(--cyan);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    font-size: 10px;
-    transition: all 0.2s;
+  .vscale-label {
+    font-size: 0.5rem;
+    color: var(--amber);
+    font-family: 'Orbitron', monospace;
   }
 
-  .media-btn:hover {
-    background: rgba(0,229,255,0.25);
-    box-shadow: 0 0 8px rgba(0,229,255,0.3);
-  }
-
-  .volume-slider {
-    flex: 1;
-    height: 3px;
-    background: rgba(255,255,255,0.1);
-    border-radius: 2px;
-    position: relative;
-    cursor: pointer;
-  }
-
-  .volume-fill {
-    height: 100%;
-    width: 60%;
-    background: var(--cyan);
-    border-radius: 2px;
-    box-shadow: 0 0 6px var(--cyan);
-  }
-
-  /* VOICE OVERLAY */
-  .voice-overlay {
+  /* Tooltip / response bubble */
+  .response-bubble {
     position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.85);
-    z-index: 10000;
-    display: none;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 20px;
-  }
-
-  .voice-overlay.active {
-    display: flex;
-  }
-
-  .voice-ring {
-    width: 200px;
-    height: 200px;
-    border: 2px solid var(--cyan);
-    border-radius: 50%;
-    position: relative;
-    animation: voice-pulse 1.5s ease-in-out infinite;
-  }
-
-  .voice-ring::before,
-  .voice-ring::after {
-    content: '';
-    position: absolute;
-    border: 1px solid var(--cyan);
-    border-radius: 50%;
-    inset: 20%;
-    animation: voice-pulse 1.5s ease-in-out 0.3s infinite;
-  }
-
-  .voice-ring::after {
-    inset: 40%;
-    animation-delay: 0.6s;
-  }
-
-  @keyframes voice-pulse {
-    0%, 100% { transform: scale(1); opacity: 0.6; }
-    50% { transform: scale(1.1); opacity: 1; }
-  }
-
-  .voice-text {
-    font-family: 'Orbitron', sans-serif;
-    font-size: 18px;
-    color: var(--cyan);
-    letter-spacing: 4px;
-    text-align: center;
-  }
-
-  .voice-subtitle {
-    font-size: 12px;
-    color: var(--white);
-    opacity: 0.7;
-  }
-
-  .voice-hint {
-    position: fixed;
-    bottom: 100px;
+    bottom: 70px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 10px;
-    color: var(--cyan-dim);
-    font-family: 'Share Tech Mono', monospace;
-    text-align: center;
-    opacity: 0.6;
-  }
-
-  /* ACTIVATE BUTTON */
-  .activate-btn {
-    position: fixed;
-    bottom: 90px;
-    right: 30px;
-    width: 56px;
-    height: 56px;
-    border-radius: 50%;
-    background: radial-gradient(circle, var(--cyan), var(--blue));
-    border: 2px solid var(--cyan);
-    color: var(--black);
-    font-family: 'Orbitron', sans-serif;
-    font-size: 9px;
-    font-weight: 700;
-    cursor: pointer;
-    z-index: 1000;
-    box-shadow:
-      0 0 20px rgba(0,229,255,0.5),
-      0 0 40px rgba(0,229,255,0.2);
-    transition: all 0.3s;
-    letter-spacing: 1px;
-  }
-
-  .activate-btn:hover {
-    transform: scale(1.1);
-    box-shadow:
-      0 0 30px rgba(0,229,255,0.7),
-      0 0 60px rgba(0,229,255,0.3);
-  }
-
-  .activate-btn.listening {
-    animation: btn-pulse 0.8s ease-in-out infinite;
-    background: radial-gradient(circle, var(--orange), var(--red));
-    border-color: var(--orange);
-  }
-
-  @keyframes btn-pulse {
-    0%, 100% { box-shadow: 0 0 20px rgba(255,145,0,0.5); }
-    50% { box-shadow: 0 0 40px rgba(255,145,0,0.8); }
-  }
-
-  /* SCAN LINES ON PANELS */
-  .scan-line {
-    position: absolute;
-    left: 0;
-    right: 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
-    opacity: 0.4;
-    animation: scan 4s linear infinite;
-    pointer-events: none;
-  }
-
-  @keyframes scan {
-    0% { top: 0; }
-    100% { top: 100%; }
-  }
-
-  /* TOOLTIP */
-  .tooltip {
-    position: fixed;
-    background: rgba(10,15,20,0.95);
+    background: rgba(0, 20, 40, 0.9);
     border: 1px solid var(--cyan);
-    padding: 6px 10px;
-    border-radius: 4px;
-    font-size: 10px;
+    padding: 10px 20px;
+    border-radius: 3px;
+    font-size: 0.8rem;
     color: var(--cyan);
-    font-family: 'Share Tech Mono', monospace;
-    pointer-events: none;
+    text-shadow: var(--glow-cyan);
     opacity: 0;
-    transition: opacity 0.2s;
-    z-index: 10001;
+    transition: opacity 0.4s;
+    pointer-events: none;
+    z-index: 200;
     white-space: nowrap;
   }
-
-  .tooltip.visible {
-    opacity: 1;
-  }
-
-  /* Responsive fallback */
-  @media (max-width: 1400px) {
-    .hud-container {
-      grid-template-columns: 180px 140px 1fr 260px 180px;
-    }
-    .jarvis-header { font-size: 20px; }
-    .big-clock { font-size: 48px; }
-    .big-date { font-size: 56px; }
-  }
+  .response-bubble.show { opacity: 1; }
 </style>
 </head>
-<body>
+<body class="scanlines">
+<div class="grid-bg"></div>
 
-<div class="hud-container">
+<!-- Start overlay -->
+<div class="start-overlay" id="startOverlay">
+  <div class="pulse-ring"></div>
+  <h1>SYSTEM STANDBY</h1>
+  <p>Click to activate J.A.R.V.I.S. voice control</p>
+</div>
 
-  <!-- TOP LEFT -->
-  <div class="panel top-left">
-    <div class="scan-line"></div>
-    <div class="user-info">
-      <div style="font-weight:600;">MICK_PUR</div>
-      <div class="build">build 2.0.0</div>
-      <div class="build">Created by J.A.R.V.I.S.</div>
-    </div>
-    <div class="ram-gauge">
-      <canvas id="ramGauge" width="64" height="64"></canvas>
-      <div>
-        <div style="font-size:9px;color:var(--cyan-dim);">RAM USAGE</div>
-        <div id="ramValue" style="font-family:'Orbitron';font-size:14px;color:var(--cyan);">63%</div>
-      </div>
-    </div>
-    <div class="power-buttons">
-      <div class="power-btn" onclick="jarvisSpeak('Initiating shutdown sequence. Goodbye, sir.')">SHUTDOWN</div>
-      <div class="power-btn" onclick="location.reload()">RESTART</div>
-      <div class="power-btn" onclick="jarvisSpeak('Logging off.')">LOG OFF</div>
-    </div>
-    <div class="network-info">
-      <div style="color:var(--orange);margin-bottom:2px;">NETWORK</div>
-      <div>IP: <span id="ipAddr">--.--.--.--</span></div>
-      <div>Up: <span id="netUp">0.0 B/s</span></div>
-      <div>Down: <span id="netDown">0.0 B/s</span></div>
-    </div>
-    <div style="margin-top:4px;">
-      <div class="panel-title" style="font-size:8px;margin-bottom:4px;">Calendar</div>
-      <div class="mini-calendar" id="miniCalendar"></div>
-    </div>
-  </div>
+<!-- Listening indicator -->
+<div class="listen-indicator" id="listenIndicator" style="opacity:0;">
+  <div class="listen-dot" id="listenDot"></div>
+  <span class="listen-text" id="listenText">Standby</span>
+</div>
 
-  <!-- SIDEBAR -->
-  <div class="panel sidebar">
-    <div class="scan-line" style="animation-delay:1s;"></div>
-    <div class="theme-label">J.A.R.V.I.S. THEME CONTROL</div>
-    <div class="app-list">
-      <div class="app-item" onclick="openApp('Chrome')">
-        <div class="app-icon" style="background:#ea4335;color:white;">C</div>
-        <span>Chrome</span>
-      </div>
-      <div class="app-item" onclick="openApp('Settings')">
-        <div class="app-icon" style="background:#888;">S</div>
-        <span>Settings</span>
-      </div>
-      <div class="app-item" onclick="openApp('Steam')">
-        <div class="app-icon" style="background:#1b2838;color:#66c0f4;">S</div>
-        <span>Steam</span>
-      </div>
-      <div class="app-item" onclick="openApp('WhatsApp')">
-        <div class="app-icon" style="background:#25d366;color:white;">W</div>
-        <span>WhatsApp</span>
-      </div>
-      <div class="app-item" onclick="openApp('Terminal')">
-        <div class="app-icon" style="background:#333;color:#0f0;">$</div>
-        <span>Terminal</span>
-      </div>
-      <div class="app-item" onclick="openApp('Discord')">
-        <div class="app-icon" style="background:#5865f2;color:white;">D</div>
-        <span>Discord</span>
-      </div>
-    </div>
-    <div class="bot-section">
-      <svg class="bot-figure" viewBox="0 0 50 50">
-        <circle cx="25" cy="15" r="8" fill="none" stroke="white" stroke-width="1" opacity="0.8"/>
-        <line x1="25" y1="23" x2="25" y2="35" stroke="white" stroke-width="1" opacity="0.6"/>
-        <line x1="15" y1="28" x2="25" y2="30" stroke="white" stroke-width="1" opacity="0.6"/>
-        <line x1="35" y1="28" x2="25" y2="30" stroke="white" stroke-width="1" opacity="0.6"/>
-        <line x1="18" y1="38" x2="25" y2="35" stroke="white" stroke-width="1" opacity="0.6"/>
-        <line x1="32" y1="38" x2="25" y2="35" stroke="white" stroke-width="1" opacity="0.6"/>
-        <rect x="20" y="42" width="10" height="4" rx="1" fill="none" stroke="var(--cyan)" stroke-width="0.5" opacity="0.5"/>
-      </svg>
-      <div class="hologram-projection">
-        <div>Uptime: <span id="uptime">0d 00h 00m</span></div>
-        <div>CPU: <span id="sidebarCpu">--%</span></div>
-        <div>RAM: <span id="sidebarRam">--%</span></div>
-        <div>C: <span id="driveC">--</span></div>
-        <div>D: <span id="driveD">--</span></div>
-      </div>
-    </div>
-  </div>
+<!-- Response bubble -->
+<div class="response-bubble" id="responseBubble"></div>
 
-  <!-- LEFT CENTER -->
-  <div class="panel left-center">
-    <div class="scan-line" style="animation-delay:2s;"></div>
-    <div class="jarvis-dial">
-      <canvas id="jarvisDial" width="320" height="320"></canvas>
-      <div class="jarvis-label">JARVIS</div>
+<!-- Main HUD -->
+<div class="hud" id="hud" style="opacity:0;">
+  <!-- LEFT COLUMN -->
+  <div class="left">
+    <div class="panel">
+      <div class="profile-name">MICK_PUR</div>
+      <div class="profile-sub">build 2.0.0</div>
+      <div class="profile-sub">Created by J.A.R.V.I.S.</div>
+      <div style="margin-top:14px;">
+        <div class="label">RAM Usage</div>
+        <div class="gauge-wrap">
+          <canvas id="ramGauge"></canvas>
+          <div class="gauge-val" id="ramVal">0%</div>
+        </div>
+      </div>
+      <div class="power-btns">
+        <button class="power-btn" onclick="cmdShutdown()">Shutdown</button>
+        <button class="power-btn" onclick="cmdRestart()">Restart</button>
+        <button class="power-btn" onclick="cmdLogoff()">Log Off</button>
+      </div>
     </div>
-    <div class="vertical-scale" id="verticalScale"></div>
+
+    <div class="panel">
+      <div class="label">Network</div>
+      <div style="font-size:0.7rem; color:#fff; margin-bottom:4px;">IP: <span id="netIp">--</span></div>
+      <div style="font-size:0.7rem; color:var(--dim);">Up: <span id="netUp" class="neon">0 B/s</span></div>
+      <div style="font-size:0.7rem; color:var(--dim);">Down: <span id="netDown" class="neon">0 B/s</span></div>
+    </div>
+
+    <div class="panel">
+      <div class="label">Calendar</div>
+      <div class="cal-grid" id="calGrid"></div>
+    </div>
+
+    <div class="panel">
+      <div class="label">J.A.R.V.I.S. Theme Control</div>
+      <div class="app-list">
+        <div class="app-item" onclick="openApp('chrome')"><div class="app-icon">C</div><span class="app-name">Chrome</span></div>
+        <div class="app-item" onclick="openApp('settings')"><div class="app-icon">S</div><span class="app-name">Settings</span></div>
+        <div class="app-item" onclick="openApp('steam')"><div class="app-icon">S</div><span class="app-name">Steam</span></div>
+        <div class="app-item" onclick="openApp('whatsapp')"><div class="app-icon">W</div><span class="app-name">WhatsApp</span></div>
+        <div class="app-item" onclick="openApp('terminal')"><div class="app-icon">$</div><span class="app-name">Terminal</span></div>
+        <div class="app-item" onclick="openApp('discord')"><div class="app-icon">D</div><span class="app-name">Discord</span></div>
+      </div>
+      <div style="margin-top:10px; padding-top:10px; border-top:1px solid rgba(0,240,255,0.08);">
+        <div style="font-size:0.6rem; color:var(--dim); margin-bottom:4px;">System Stats</div>
+        <div style="font-size:0.65rem; color:#fff;">Uptime: <span id="botUptime" class="amber">0h 0m</span></div>
+        <div style="font-size:0.65rem; color:#fff;">CPU: <span id="botCpu" class="amber">0%</span></div>
+        <div style="font-size:0.65rem; color:#fff;">RAM: <span id="botRam" class="amber">0%</span></div>
+      </div>
+    </div>
   </div>
 
   <!-- HEADER -->
-  <div class="header-area">
-    <div class="jarvis-header glow-text">J.A.R.V.I.S.</div>
-    <div class="jarvis-subtitle" id="subtitleText">What Can I Search For You, Sir?</div>
-    <div class="header-content">
-      <div class="schematic-circle"></div>
-      <div class="quick-links">
-        <div class="quick-link" onclick="openLink('https://google.com')">GOOGLE</div>
-        <div class="quick-link" onclick="openLink('https://gmail.com')">GMAIL</div>
-        <div class="quick-link" onclick="openLink('https://facebook.com')">FACEBOOK</div>
-        <div class="quick-link" onclick="openLink('https://youtube.com')">YOUTUBE</div>
-        <div class="quick-link" onclick="openLink('https://imdb.com')">IMDB</div>
-        <div class="quick-link" onclick="openLink('https://wikipedia.org')">WIKIPEDIA</div>
-        <div class="quick-link" onclick="openLink('https://github.com')">GITHUB</div>
-        <div class="quick-link" onclick="openLink('https://twitter.com')">TWITTER</div>
-        <div class="quick-link" onclick="openLink('https://reddit.com')">REDDIT</div>
-        <div class="quick-link" onclick="openLink('https://amazon.com')">AMAZON</div>
-        <div class="quick-link" onclick="openLink('https://netflix.com')">NETFLIX</div>
-        <div class="quick-link" onclick="openLink('https://spotify.com')">SPOTIFY</div>
-        <div class="quick-link" onclick="openLink('https://chat.openai.com')">CHATGPT</div>
+  <div class="header panel">
+    <div class="jarvis-title">
+      <h1>J.A.R.V.I.S.</h1>
+      <p>What Can I Search For You, Sir?</p>
+    </div>
+  </div>
+
+  <!-- CENTER -->
+  <div class="center panel">
+    <div class="vscale">
+      <div class="vscale-label">100</div>
+      <div class="vscale-label">80</div>
+      <div class="vscale-label">60</div>
+      <div class="vscale-label">40</div>
+      <div class="vscale-label">20</div>
+      <div class="vscale-label">0</div>
+    </div>
+
+    <div class="quick-links">
+      <div class="quick-link" onclick="openUrl('https://google.com')">GOOGLE</div>
+      <div class="quick-link" onclick="openUrl('https://gmail.com')">GMAIL</div>
+      <div class="quick-link" onclick="openUrl('https://facebook.com')">FACEBOOK</div>
+      <div class="quick-link" onclick="openUrl('https://youtube.com')">YOUTUBE</div>
+      <div class="quick-link" onclick="openUrl('https://imdb.com')">IMDB</div>
+      <div class="quick-link" onclick="openUrl('https://wikipedia.org')">WIKIPEDIA</div>
+      <div class="quick-link" onclick="openUrl('https://github.com')">GITHUB</div>
+      <div class="quick-link" onclick="openUrl('https://twitter.com')">TWITTER</div>
+      <div class="quick-link" onclick="openUrl('https://reddit.com')">REDDIT</div>
+      <div class="quick-link" onclick="openUrl('https://amazon.com')">AMAZON</div>
+      <div class="quick-link" onclick="openUrl('https://netflix.com')">NETFLIX</div>
+      <div class="quick-link" onclick="openUrl('https://spotify.com')">SPOTIFY</div>
+      <div class="quick-link" onclick="openUrl('https://chatgpt.com')">CHATGPT</div>
+    </div>
+
+    <div class="centerpiece">
+      <canvas id="ironManCanvas"></canvas>
+    </div>
+  </div>
+
+  <!-- RIGHT COLUMN -->
+  <div class="right">
+    <div class="panel">
+      <div class="sys-tabs">
+        <div class="sys-tab active" onclick="switchTab('sys')">SYS</div>
+        <div class="sys-tab" onclick="switchTab('data')">DATA</div>
+        <div class="sys-tab" onclick="switchTab('apps')">APPS</div>
+        <div class="sys-tab" onclick="switchTab('media')">MEDIA</div>
+      </div>
+      <div id="tabSys">
+        <div class="sys-metric"><span>CPU Usage</span><span id="sysCpu">0%</span></div>
+        <div class="sys-metric"><span>RAM Usage</span><span id="sysRam">0%</span></div>
+        <div class="sys-metric"><span>SWAP Usage</span><span id="sysSwap">0%</span></div>
+        <div style="margin-top:8px; font-size:0.6rem; color:var(--dim);">DISK</div>
+        <div class="sys-metric"><span>C:\</span><span id="diskC">0/0 GB</span></div>
+        <div class="sys-metric"><span>D:\</span><span id="diskD">0/0 GB</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">Weather</div>
+      <div style="font-size:0.7rem; color:#fff; margin-bottom:6px;"><span id="weatherLoc">--</span></div>
+      <div style="display:flex; gap:12px; font-size:0.6rem; color:var(--dim);">
+        <div>Humidity: <span id="weatherHum" class="neon">--%</span></div>
+        <div>Wind: <span id="weatherWind" class="neon">--</span></div>
+      </div>
+      <div style="margin-top:8px; font-size:0.6rem; color:var(--dim);">
+        <div>Today: <span id="weatherToday" class="neon">--</span></div>
+        <div>Tomorrow: <span id="weatherTom" class="neon">--</span></div>
+      </div>
+    </div>
+
+    <div class="panel" style="flex:1; display:flex; flex-direction:column; justify-content:center;">
+      <div style="text-align:center;">
+        <div style="font-family:'Orbitron'; font-size:2.8rem; color:#fff; text-shadow:var(--glow-cyan);" id="bigDay">--</div>
+        <div style="font-size:0.9rem; color:var(--amber); text-transform:uppercase; letter-spacing:0.2em;" id="bigMonth">--</div>
+        <div style="font-size:0.7rem; color:#fff; text-transform:uppercase; letter-spacing:0.15em; margin-top:2px;" id="bigWeekday">--</div>
+      </div>
+      <div style="margin-top:auto;">
+        <div class="label" style="text-align:center; margin-bottom:6px;">Power Level</div>
+        <div style="height:4px; background:rgba(255,255,255,0.05); border-radius:2px; overflow:hidden;">
+          <div style="height:100%; width:100%; background:linear-gradient(90deg, var(--cyan), var(--amber)); box-shadow:var(--glow-cyan);"></div>
+        </div>
+        <div style="text-align:center; font-size:0.6rem; color:var(--dim); margin-top:4px;">100% — Holding steady</div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="label">Media Player</div>
+      <div class="media-player">
+        <div class="media-art">♪</div>
+        <div class="media-info">
+          <div class="media-track">Lost in the Crowd</div>
+          <div class="media-artist">BassNectar</div>
+          <div class="media-controls">
+            <button class="media-btn">◄◄</button>
+            <button class="media-btn">▶</button>
+            <button class="media-btn">►►</button>
+          </div>
+        </div>
+        <div style="font-size:0.6rem; color:var(--dim);">4:04</div>
       </div>
     </div>
   </div>
 
-  <!-- CENTERPIECE -->
-  <div class="centerpiece">
-    <div class="ironman-container">
-      <svg class="ironman-svg" viewBox="0 0 400 420" id="ironmanSvg">
-        <!-- Helmet outline -->
-        <path d="M200 20 C260 20 300 60 310 120 C315 150 310 180 300 200 L280 220 L260 210 L260 160 L240 140 L200 130 L160 140 L140 160 L140 210 L120 220 L100 200 C90 180 85 150 90 120 C100 60 140 20 200 20Z"
-              fill="none" stroke="#00e5ff" stroke-width="1.5" opacity="0.6"/>
-        <!-- Face plate -->
-        <path d="M160 180 L200 200 L240 180 L240 230 L200 250 L160 230Z"
-              fill="none" stroke="#00e5ff" stroke-width="1" opacity="0.4"/>
-        <!-- Eyes -->
-        <ellipse cx="175" cy="190" rx="12" ry="6" fill="#00e5ff" opacity="0.9">
-          <animate attributeName="opacity" values="0.9;0.4;0.9" dur="3s" repeatCount="indefinite"/>
-        </ellipse>
-        <ellipse cx="225" cy="190" rx="12" ry="6" fill="#00e5ff" opacity="0.9">
-          <animate attributeName="opacity" values="0.9;0.4;0.9" dur="3s" repeatCount="indefinite"/>
-        </ellipse>
-        <!-- Jaw -->
-        <path d="M150 240 L200 280 L250 240 L240 300 L200 320 L160 300Z"
-              fill="none" stroke="#00e5ff" stroke-width="1" opacity="0.3"/>
-        <!-- Neck -->
-        <rect x="170" y="310" width="60" height="30" fill="none" stroke="#00e5ff" stroke-width="1" opacity="0.3"/>
-        <!-- Shoulders -->
-        <path d="M120 340 C100 340 80 360 70 400 L120 400 L140 380 L160 400 L240 400 L260 380 L280 400 L330 400 C320 360 300 340 280 340 L260 350 L200 360 L140 350Z"
-              fill="none" stroke="#00e5ff" stroke-width="1.2" opacity="0.5"/>
-        <!-- Chest plate -->
-        <path d="M140 380 L200 420 L260 380 L240 360 L200 370 L160 360Z"
-              fill="none" stroke="#00e5ff" stroke-width="1" opacity="0.4"/>
-        <!-- Arc Reactor -->
-        <circle cx="200" cy="385" r="22" fill="none" stroke="#00e5ff" stroke-width="2" opacity="0.8">
-          <animate attributeName="r" values="22;24;22" dur="2s" repeatCount="indefinite"/>
-        </circle>
-        <circle cx="200" cy="385" r="16" fill="none" stroke="#00e5ff" stroke-width="1" opacity="0.6"/>
-        <circle cx="200" cy="385" r="10" fill="none" stroke="#00e5ff" stroke-width="0.5" opacity="0.4"/>
-        <circle cx="200" cy="385" r="4" fill="#00e5ff" opacity="0.9">
-          <animate attributeName="opacity" values="0.9;0.3;0.9" dur="1.5s" repeatCount="indefinite"/>
-        </circle>
-        <!-- Circuit lines -->
-        <path d="M200 385 L200 340 M200 385 L160 360 M200 385 L240 360 M200 385 L140 350 M200 385 L260 350"
-              stroke="#ff1744" stroke-width="0.8" opacity="0.4" fill="none"/>
-        <path d="M175 190 L160 140 M225 190 L240 140 M200 250 L200 280"
-              stroke="#ff1744" stroke-width="0.5" opacity="0.3" fill="none"/>
-        <!-- Shoulder details -->
-        <circle cx="100" cy="370" r="15" fill="none" stroke="#00e5ff" stroke-width="0.8" opacity="0.3"/>
-        <circle cx="300" cy="370" r="15" fill="none" stroke="#00e5ff" stroke-width="0.8" opacity="0.3"/>
-      </svg>
-      <div class="arc-reactor-glow"></div>
-    </div>
-  </div>
-
-  <!-- TOP RIGHT -->
-  <div class="panel top-right">
-    <div class="scan-line" style="animation-delay:0.5s;"></div>
-    <div class="drive-tabs">
-      <div class="drive-tab active">SYS</div>
-      <div class="drive-tab">DATA</div>
-      <div class="drive-tab">APPS</div>
-      <div class="drive-tab">MEDIA</div>
-      <div class="drive-tab">TOOLS</div>
-    </div>
-    <div class="panel-title">System Monitor</div>
-    <div class="system-monitor">
-      <div class="monitor-row"><span class="monitor-label">CPU Usage</span><span class="monitor-value" id="cpuMonitor">31%</span></div>
-      <div class="monitor-row"><span class="monitor-label">RAM Usage</span><span class="monitor-value" id="ramMonitor">63%</span></div>
-      <div class="monitor-row"><span class="monitor-label">SWAP Usage</span><span class="monitor-value" id="swapMonitor">61%</span></div>
-      <div class="monitor-row"><span class="monitor-label">C:\</span><span class="monitor-value" id="diskC">47.4 / 97.0 GB</span></div>
-      <div class="monitor-row"><span class="monitor-label">D:\</span><span class="monitor-value" id="diskD">0.0 / 0.0 B</span></div>
-    </div>
-    <div class="tech-schematics">
-      <div class="schem-box">
-        <svg viewBox="0 0 40 40" width="100%" height="100%">
-          <circle cx="20" cy="20" r="15" fill="none" stroke="white" stroke-width="0.5" opacity="0.3"/>
-          <circle cx="20" cy="20" r="8" fill="none" stroke="white" stroke-width="0.5" opacity="0.3"/>
-          <line x1="5" y1="20" x2="35" y2="20" stroke="white" stroke-width="0.3" opacity="0.3"/>
-          <line x1="20" y1="5" x2="20" y2="35" stroke="white" stroke-width="0.3" opacity="0.3"/>
-        </svg>
-      </div>
-      <div class="schem-box">
-        <svg viewBox="0 0 40 60" width="100%" height="100%">
-          <ellipse cx="20" cy="12" rx="8" ry="10" fill="none" stroke="white" stroke-width="0.5" opacity="0.3"/>
-          <rect x="12" y="22" width="16" height="20" rx="3" fill="none" stroke="white" stroke-width="0.5" opacity="0.3"/>
-          <line x1="16" y1="42" x2="12" y2="55" stroke="white" stroke-width="0.5" opacity="0.3"/>
-          <line x1="24" y1="42" x2="28" y2="55" stroke="white" stroke-width="0.5" opacity="0.3"/>
-        </svg>
-      </div>
-      <div class="schem-box">
-        <svg viewBox="0 0 40 60" width="100%" height="100%">
-          <ellipse cx="20" cy="12" rx="6" ry="10" fill="none" stroke="white" stroke-width="0.5" opacity="0.3"/>
-          <rect x="14" y="22" width="12" height="20" rx="2" fill="none" stroke="white" stroke-width="0.5" opacity="0.3"/>
-          <line x1="17" y1="42" x2="15" y2="55" stroke="white" stroke-width="0.5" opacity="0.3"/>
-          <line x1="23" y1="42" x2="25" y2="55" stroke="white" stroke-width="0.5" opacity="0.3"/>
-        </svg>
+  <!-- FOOTER -->
+  <div class="footer panel">
+    <div>
+      <div class="big-clock" id="bigClock">00:00 AM</div>
+      <div class="footer-date" id="footerDate">--</div>
+      <div class="footer-status" id="footerStatus">Currently power level is at 100 percent and holding steady.</div>
+      <div class="year-progress">
+        <div class="yr-item"><div class="yr-val" id="yrDays">--</div><div class="yr-label">Days Left</div></div>
+        <div class="yr-item"><div class="yr-val" id="yrWeeks">--</div><div class="yr-label">Weeks</div></div>
+        <div class="yr-item"><div class="yr-val" id="yrMonths">--</div><div class="yr-label">Months</div></div>
+        <div class="yr-item"><div class="yr-val" id="yrYear">--</div><div class="yr-label">Year</div></div>
       </div>
     </div>
-    <div class="hex-cluster">
-      <div class="hex">A</div>
-      <div class="hex">&#127918;</div>
-      <div class="hex">&#127909;</div>
-      <div class="hex">&#128187;</div>
-    </div>
-    <div class="weather-widget" id="weatherWidget">
-      <div class="weather-row"><span>Humidity</span><span>--%</span></div>
-      <div class="weather-row"><span>Feels Like</span><span>--°</span></div>
-      <div class="weather-row"><span>Wind</span><span>-- km/h</span></div>
-      <div class="forecast">
-        <div class="weather-row" style="color:var(--cyan);"><span>Today</span><span>--°/--°</span></div>
-      </div>
+    <div style="text-align:right;">
+      <div style="font-family:'Orbitron'; font-size:1.4rem; color:#fff;" id="footerTimeSmall">00:00</div>
+      <div style="font-size:0.6rem; color:var(--dim); margin-top:4px;">SYSTEM ONLINE</div>
     </div>
   </div>
-
-  <!-- DATE RIGHT -->
-  <div class="panel date-right">
-    <div class="scan-line" style="animation-delay:1.5s;"></div>
-    <div class="big-date" id="bigDate">--</div>
-    <div class="big-month" id="bigMonth">---</div>
-    <div class="big-day" id="bigDay">-------</div>
-    <div class="vertical-bar"></div>
-  </div>
-
-  <!-- GAUGES RIGHT -->
-  <div class="panel gauges-right">
-    <div class="scan-line" style="animation-delay:2.5s;"></div>
-    <div class="time-display" id="rightTime">--:--</div>
-    <div class="radial-menu">
-      <canvas id="radialMenu" width="360" height="360"></canvas>
-    </div>
-    <div class="temp-gauge"><span id="tempValue">54</span>°C</div>
-    <div class="ip-display" id="rightIp">---.---.---.---</div>
-  </div>
-
-  <!-- BOTTOM CENTER -->
-  <div class="panel bottom-center">
-    <div class="scan-line" style="animation-delay:3s;"></div>
-    <div class="big-clock">
-      <span class="shadow" id="shadowClock">--:-- --</span>
-      <span id="mainClock">--:-- --</span>
-    </div>
-    <div class="bottom-date" id="bottomDate">-- ---, -------</div>
-    <div class="status-report" id="statusReport">Currently power level is at 100 percent and holding steady.</div>
-    <div class="year-progress">
-      <span>Days: <span id="daysLeft" style="color:var(--orange);">--</span></span>
-      <span>Weeks: <span id="weeksLeft" style="color:var(--orange);">--</span></span>
-      <span>Months: <span id="monthsLeft" style="color:var(--orange);">--</span></span>
-      <span>Year: <span id="currentYear" style="color:var(--cyan);">----</span></span>
-    </div>
-    <div class="mini-graphs">
-      <canvas class="mini-bar" id="graph1" width="120" height="48"></canvas>
-      <canvas class="mini-bar" id="graph2" width="120" height="48"></canvas>
-      <canvas class="mini-bar" id="graph3" width="120" height="48"></canvas>
-    </div>
-  </div>
-
-  <!-- MEDIA PLAYER -->
-  <div class="panel media-player">
-    <div class="scan-line" style="animation-delay:3.5s;"></div>
-    <div class="track-info">
-      <div class="album-art"><span style="position:relative;z-index:1;">TUNES</span></div>
-      <div class="track-meta">
-        <div class="track-time" id="trackTime">0:00</div>
-        <div class="track-name" id="trackName">BassNectar - Lost in the Crowd</div>
-      </div>
-    </div>
-    <div class="media-controls">
-      <div class="media-btn" onclick="mediaPrev()">&#9668;</div>
-      <div class="media-btn" onclick="mediaPlayPause()" id="playBtn">&#9658;</div>
-      <div class="media-btn" onclick="mediaNext()">&#9658;&#9658;</div>
-      <div class="volume-slider" onclick="setVolume(event)">
-        <div class="volume-fill" id="volumeFill"></div>
-      </div>
-    </div>
-  </div>
-
 </div>
 
-<!-- Voice Overlay -->
-<div class="voice-overlay" id="voiceOverlay">
-  <div class="voice-ring"></div>
-  <div class="voice-text" id="voiceText">LISTENING</div>
-  <div class="voice-subtitle" id="voiceSubtitle">Say something, sir...</div>
-</div>
-
-<div class="voice-hint">
-  Click the J.A.R.V.I.S. button or press Space to activate voice commands
-</div>
-
-<button class="activate-btn" id="activateBtn" onclick="toggleVoice()">J.A.R.V.I.S.</button>
-
-<div class="tooltip" id="tooltip"></div>
+<!-- Voice button -->
+<button class="voice-btn" id="voiceBtn" onclick="toggleVoice()">J.A.R.V.I.S.</button>
 
 <script>
-/* ==============================
-   J.A.R.V.I.S. CORE SYSTEM
-   ============================== */
-
-const $ = id => document.getElementById(id);
+// ========================
+// STATE
+// ========================
 let recognition = null;
-let synth = window.speechSynthesis;
+let voices = [];
 let isListening = false;
 let startTime = Date.now();
-let audioCtx = null;
+let simCpu = 30, simRam = 45, simSwap = 20;
+let wakeLock = null;
 
-// Initialize
-function init() {
-  setupCalendar();
-  setupVerticalScale();
-  updateClock();
-  updateSystemStats();
-  drawAllGauges();
-  fetchIP();
+const WAKE_WORDS = ['jarvis', 'hey computer', 'system', 'hey jarvis'];
+const RESPONSES = {
+  greeting: ["At your service, sir.", "Online and ready.", "Systems active.", "Good day, sir."],
+  status: ["All systems nominal.", "Power levels optimal.", "No anomalies detected.", "Systems are functioning within normal parameters."],
+  unknown: ["I did not catch that, sir.", "Command unclear. Please repeat.", "Query not understood.", "Could you rephrase that, sir?"],
+  thanks: ["You're welcome, sir.", "My pleasure.", "Always at your service."],
+};
+
+// ========================
+// INITIALIZATION
+// ========================
+document.getElementById('startOverlay').addEventListener('click', initSystem);
+
+function initSystem() {
+  const overlay = document.getElementById('startOverlay');
+  overlay.style.opacity = '0';
+  setTimeout(() => overlay.style.display = 'none', 600);
+
+  document.getElementById('hud').style.opacity = '1';
+  document.getElementById('hud').style.transition = 'opacity 1s ease';
+  document.getElementById('listenIndicator').style.opacity = '1';
+
+  loadVoices();
+  initVoice();
+  startClock();
+  startSimData();
+  renderCalendar();
   fetchWeather();
-  setupSpeech();
-  setupTooltips();
-  animateGraphs();
-  setInterval(updateClock, 1000);
-  setInterval(updateSystemStats, 2000);
-  setInterval(drawAllGauges, 2000);
-  setInterval(updateUptime, 60000);
-  setInterval(animateGraphs, 100);
-  setInterval(updateTrackTime, 1000);
-  updateYearProgress();
-  jarvisSpeak("Welcome back, sir. J.A.R.V.I.S. online. All systems nominal.");
+  setupNetwork();
+  setupBattery();
+  drawIronMan();
+  drawRamGauge();
+  requestWakeLock();
+
+  setTimeout(() => speak("J.A.R.V.I.S. online. Welcome back, sir."), 800);
 }
 
-/* ---- Clock & Date ---- */
-function updateClock() {
+function loadVoices() {
+  voices = speechSynthesis.getVoices();
+  if (!voices.length) {
+    speechSynthesis.onvoiceschanged = () => { voices = speechSynthesis.getVoices(); };
+  }
+}
+
+function requestWakeLock() {
+  if ('wakeLock' in navigator) {
+    navigator.wakeLock.request('screen').then(lock => { wakeLock = lock; });
+  }
+}
+
+// ========================
+// VOICE
+// ========================
+function initVoice() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showResponse("Speech API not supported");
+    return;
+  }
+  recognition = new SR();
+  recognition.continuous = true;
+  recognition.interimResults = false;
+  recognition.lang = 'en-US';
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('listenDot').classList.add('active');
+    document.getElementById('listenText').textContent = 'Listening';
+    document.getElementById('voiceBtn').classList.add('listening');
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    document.getElementById('listenDot').classList.remove('active');
+    document.getElementById('listenText').textContent = 'Standby';
+    document.getElementById('voiceBtn').classList.remove('listening');
+    setTimeout(() => { if (recognition) recognition.start(); }, 400);
+  };
+
+  recognition.onresult = (e) => {
+    const text = e.results[e.results.length - 1][0].transcript.trim();
+    showResponse('> ' + text);
+    handleCommand(text.toLowerCase());
+  };
+
+  recognition.onerror = (e) => {
+    if (e.error === 'not-allowed') {
+      showResponse('Microphone blocked. Check browser settings.');
+    } else if (e.error === 'no-speech' || e.error === 'audio-capture') {
+      recognition.stop();
+    }
+  };
+
+  recognition.start();
+}
+
+function toggleVoice() {
+  if (!recognition) return;
+  if (isListening) {
+    recognition.stop();
+  } else {
+    recognition.start();
+  }
+}
+
+function speak(text, rate = 1.08, pitch = 0.92) {
+  if (!window.speechSynthesis) return;
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = rate;
+  u.pitch = pitch;
+  const v = voices.find(vo => vo.name.includes('Google UK English Male'))
+    || voices.find(vo => vo.name.includes('Daniel'))
+    || voices.find(vo => vo.name.includes('Fred'))
+    || voices.find(vo => vo.name.includes('Male'))
+    || voices[0];
+  if (v) u.voice = v;
+  speechSynthesis.speak(u);
+  showResponse(text);
+}
+
+function respond(type) {
+  const pool = RESPONSES[type] || RESPONSES.unknown;
+  speak(pool[Math.floor(Math.random() * pool.length)]);
+}
+
+function showResponse(text) {
+  const bubble = document.getElementById('responseBubble');
+  bubble.textContent = text;
+  bubble.classList.add('show');
+  clearTimeout(bubble._t);
+  bubble._t = setTimeout(() => bubble.classList.remove('show'), 3500);
+}
+
+// ========================
+// COMMAND PARSER
+// ========================
+function handleCommand(text) {
+  const hasWake = WAKE_WORDS.some(w => text.includes(w));
+  if (!hasWake && !text.includes('jarvis')) return;
+
+  // Direct commands (no wake word needed for common ones)
+  if (/time|clock|hour/.test(text)) {
+    speak('The current time is ' + new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}));
+  }
+  else if (/date|day|today/.test(text)) {
+    const d = new Date();
+    speak('Today is ' + d.toLocaleDateString([], {weekday:'long', month:'long', day:'numeric', year:'numeric'}));
+  }
+  else if (/status|report|systems|condition/.test(text)) {
+    respond('status');
+    setTimeout(() => speak(`CPU load is at ${Math.round(simCpu)} percent. RAM usage is at ${Math.round(simRam)} percent. All systems nominal.`), 1500);
+  }
+  else if (/weather|temperature|forecast/.test(text)) {
+    speak('I am unable to access local weather data without a location, sir. Please check the weather widget.');
+  }
+  else if (/hello|hi|greetings|good morning|good afternoon|good evening/.test(text)) {
+    respond('greeting');
+  }
+  else if (/open\s+(chrome|google|youtube|gmail|github|twitter|reddit|netflix|spotify|settings|steam|discord|whatsapp)/.test(text)) {
+    const app = text.match(/open\s+(\w+)/)[1];
+    speak(`Opening ${app}, sir.`);
+    openApp(app);
+  }
+  else if (/search\s+for\s+(.+)/.test(text)) {
+    const q = text.match(/search\s+for\s+(.+)/)[1];
+    speak(`Searching for ${q}, sir.`);
+    window.open('https://google.com/search?q=' + encodeURIComponent(q), '_blank');
+  }
+  else if (/shutdown|power\s+off|sleep/.test(text)) {
+    speak('Entering standby mode.');
+    if (recognition) recognition.stop();
+  }
+  else if (/restart|reboot/.test(text)) {
+    speak('Restarting systems. Please stand by.');
+    setTimeout(() => location.reload(), 2000);
+  }
+  else if (/thank|thanks/.test(text)) {
+    respond('thanks');
+  }
+  else if (/who\s+are\s+you|what\s+are\s+you/.test(text)) {
+    speak("I am J.A.R.V.I.S., Just A Rather Very Intelligent System. Your personal AI assistant.");
+  }
+  else if (/joke|funny/.test(text)) {
+    speak("Why did the robot go on vacation? Because it needed to recharge its batteries, sir.");
+  }
+  else {
+    respond('unknown');
+  }
+}
+
+// ========================
+// ACTIONS
+// ========================
+function openApp(app) {
+  const urls = {
+    chrome: 'https://google.com', settings: '#', steam: 'https://store.steampowered.com',
+    whatsapp: 'https://web.whatsapp.com', terminal: '#', discord: 'https://discord.com',
+    google: 'https://google.com', youtube: 'https://youtube.com', gmail: 'https://gmail.com',
+    github: 'https://github.com', twitter: 'https://twitter.com', reddit: 'https://reddit.com',
+    netflix: 'https://netflix.com', spotify: 'https://open.spotify.com'
+  };
+  const url = urls[app];
+  if (url && url !== '#') window.open(url, '_blank');
+}
+
+function openUrl(url) { window.open(url, '_blank'); }
+function cmdShutdown() { speak('Shutting down.'); }
+function cmdRestart() { speak('Restarting.'); setTimeout(() => location.reload(), 1500); }
+function cmdLogoff() { speak('Logging off.'); }
+function switchTab(tab) { document.querySelectorAll('.sys-tab').forEach(t => t.classList.remove('active')); event.target.classList.add('active'); }
+
+// ========================
+// CLOCK & CALENDAR
+// ========================
+function startClock() {
+  const update = () => {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit', hour12:false});
+    const ampm = now.getHours() >= 12 ? 'PM' : 'AM';
+    document.getElementById('bigClock').textContent = timeStr + ' ' + ampm;
+    document.getElementById('footerTimeSmall').textContent = timeStr;
+    document.getElementById('footerDate').textContent = now.toLocaleDateString([], {day:'numeric', month:'short', weekday:'long'});
+
+    document.getElementById('bigDay').textContent = now.getDate();
+    document.getElementById('bigMonth').textContent = now.toLocaleDateString([], {month:'long'});
+    document.getElementById('bigWeekday').textContent = now.toLocaleDateString([], {weekday:'long'});
+
+    const endOfYear = new Date(now.getFullYear(), 11, 31);
+    const daysLeft = Math.ceil((endOfYear - now) / 86400000);
+    document.getElementById('yrDays').textContent = daysLeft;
+    document.getElementById('yrWeeks').textContent = Math.ceil(daysLeft / 7);
+    document.getElementById('yrMonths').textContent = 12 - now.getMonth() - 1;
+    document.getElementById('yrYear').textContent = now.getFullYear();
+
+    const elapsed = Math.floor((Date.now() - startTime) / 60000);
+    document.getElementById('botUptime').textContent = Math.floor(elapsed / 60) + 'h ' + (elapsed % 60) + 'm';
+  };
+  update();
+  setInterval(update, 1000);
+}
+
+function renderCalendar() {
   const now = new Date();
-  let h = now.getHours();
-  const m = now.getMinutes().toString().padStart(2, '0');
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  const timeStr = `${h}:${m} ${ampm}`;
-  $('mainClock').textContent = timeStr;
-  $('shadowClock').textContent = timeStr;
-  $('rightTime').textContent = `${h}:${m}`;
-
-  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
-  const monthsFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-
-  $('bigDate').textContent = now.getDate();
-  $('bigMonth').textContent = months[now.getMonth()];
-  $('bigDay').textContent = days[now.getDay()];
-  $('bottomDate').textContent = `${now.getDate()}-${monthsFull[now.getMonth()].substring(0,3)}, ${days[now.getDay()]}`;
+  const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).getDay();
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = '';
+  const dayNames = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+  dayNames.forEach(d => {
+    const el = document.createElement('div');
+    el.className = 'cal-day-h';
+    el.textContent = d;
+    grid.appendChild(el);
+  });
+  for (let i = 0; i < firstDay; i++) {
+    grid.appendChild(document.createElement('div'));
+  }
+  for (let d = 1; d <= daysInMonth; d++) {
+    const el = document.createElement('div');
+    el.className = 'cal-day';
+    el.textContent = d;
+    if (d === now.getDate()) el.classList.add('today');
+    grid.appendChild(el);
+  }
 }
 
-function setupCalendar() {
-  const now = new Date();
-  const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-  const html = days.map(d => `<div class="day-label">${d}</div>`).join('') +
-    Array.from({length: 35}, (_, i) => {
-      const d = new Date(now.getFullYear(), now.getMonth(), i - 5);
-      const isToday = d.toDateString() === now.toDateString();
-      return `<div class="day ${isToday ? 'today' : ''}">${d.getMonth() === now.getMonth() ? d.getDate() : ''}</div>`;
-    }).join('');
-  $('miniCalendar').innerHTML = html;
+// ========================
+// SIMULATED DATA
+// ========================
+function randomWalk(prev, min, max, step = 3) {
+  const delta = (Math.random() - 0.5) * step;
+  return Math.max(min, Math.min(max, prev + delta));
 }
 
-function setupVerticalScale() {
-  $('verticalScale').innerHTML = Array.from({length: 11}, (_, i) =>
-    `<span>${i * 10}</span>`
-  ).reverse().join('');
+function startSimData() {
+  setInterval(() => {
+    simCpu = randomWalk(simCpu, 5, 95);
+    simRam = randomWalk(simRam, 20, 85);
+    simSwap = randomWalk(simSwap, 5, 70);
+
+    document.getElementById('sysCpu').textContent = Math.round(simCpu) + '%';
+    document.getElementById('sysRam').textContent = Math.round(simRam) + '%';
+    document.getElementById('sysSwap').textContent = Math.round(simSwap) + '%';
+    document.getElementById('botCpu').textContent = Math.round(simCpu) + '%';
+    document.getElementById('botRam').textContent = Math.round(simRam) + '%';
+    document.getElementById('ramVal').textContent = Math.round(simRam) + '%';
+
+    // Disk simulation
+    document.getElementById('diskC').textContent = '47.4 / 97.0 GB';
+    document.getElementById('diskD').textContent = '0.0 / 0.0 B';
+  }, 2000);
 }
 
-function updateUptime() {
-  const diff = Math.floor((Date.now() - startTime) / 1000);
-  const d = Math.floor(diff / 86400);
-  const h = Math.floor((diff % 86400) / 3600).toString().padStart(2,'0');
-  const m = Math.floor((diff % 3600) / 60).toString().padStart(2,'0');
-  $('uptime').textContent = `${d}d ${h}h ${m}m`;
+// ========================
+// CANVAS GAUGES
+// ========================
+function setupCanvas(canvas) {
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return { ctx, w: rect.width, h: rect.height };
 }
 
-function updateYearProgress() {
-  const now = new Date();
-  const end = new Date(now.getFullYear(), 11, 31);
-  const diff = Math.ceil((end - now) / 86400000);
-  $('daysLeft').textContent = diff;
-  $('weeksLeft').textContent = Math.ceil(diff / 7);
-  $('monthsLeft').textContent = 12 - now.getMonth() - 1;
-  $('currentYear').textContent = now.getFullYear();
+function drawRamGauge() {
+  const canvas = document.getElementById('ramGauge');
+  const { ctx, w, h } = setupCanvas(canvas);
+  const cx = w / 2, cy = h / 2, r = Math.min(w, h) / 2 - 10;
+
+  function draw() {
+    ctx.clearRect(0, 0, w, h);
+    const pct = simRam / 100;
+    const start = -Math.PI * 0.75;
+    const end = start + pct * Math.PI * 1.5;
+    const color = pct > 0.8 ? '#ff8c00' : '#00f0ff';
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, start, Math.PI * 0.75);
+    ctx.strokeStyle = 'rgba(0,240,255,0.08)';
+    ctx.lineWidth = 8;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, start, end);
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 8;
+    ctx.lineCap = 'round';
+    ctx.shadowColor = color;
+    ctx.shadowBlur = 14;
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    requestAnimationFrame(draw);
+  }
+  draw();
 }
 
-/* ---- System Stats (Simulated) ---- */
-function updateSystemStats() {
-  const cpu = Math.floor(20 + Math.random() * 40);
-  const ram = Math.floor(50 + Math.random() * 20);
-  const swap = Math.floor(40 + Math.random() * 30);
-  const temp = Math.floor(45 + Math.random() * 15);
+// ========================
+// IRON MAN WIREFRAME
+// ========================
+function drawIronMan() {
+  const canvas = document.getElementById('ironManCanvas');
+  const { ctx, w, h } = setupCanvas(canvas);
+  canvas.style.width = '320px';
+  canvas.style.height = '380px';
 
-  $('cpuMonitor').textContent = cpu + '%';
-  $('ramMonitor').textContent = ram + '%';
-  $('swapMonitor').textContent = swap + '%';
-  $('ramValue').textContent = ram + '%';
-  $('sidebarCpu').textContent = cpu + '%';
-  $('sidebarRam').textContent = ram + '%';
-  $('tempValue').textContent = temp;
+  let pulse = 0;
 
-  // Drive stats
-  const used = (45 + Math.random() * 5).toFixed(1);
-  $('diskC').textContent = `${used} / 97.0 GB`;
-  $('driveC').textContent = `${used} G`;
-  $('driveD').textContent = '0.00';
+  function draw() {
+    pulse += 0.03;
+    ctx.clearRect(0, 0, w, h);
+    const cx = w / 2, cy = h / 2 - 20;
 
-  // Network
-  const up = (Math.random() * 500).toFixed(1);
-  const down = (Math.random() * 2000).toFixed(1);
-  $('netUp').textContent = `${up} KB/s`;
-  $('netDown').textContent = `${down} KB/s`;
+    // Outer glow ring
+    const ringR = 140 + Math.sin(pulse) * 3;
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringR, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0, 240, 255, ${0.15 + Math.sin(pulse) * 0.08})`;
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Inner ring
+    ctx.beginPath();
+    ctx.arc(cx, cy, ringR - 25, 0, Math.PI * 2);
+    ctx.strokeStyle = `rgba(0, 240, 255, ${0.1 + Math.cos(pulse) * 0.05})`;
+    ctx.stroke();
+
+    // Tick marks on outer ring
+    for (let i = 0; i < 60; i++) {
+      const a = (i / 60) * Math.PI * 2;
+      const r1 = ringR - 5;
+      const r2 = i % 5 === 0 ? ringR - 12 : ringR - 8;
+      ctx.beginPath();
+      ctx.moveTo(cx + Math.cos(a) * r1, cy + Math.sin(a) * r1);
+      ctx.lineTo(cx + Math.cos(a) * r2, cy + Math.sin(a) * r2);
+      ctx.strokeStyle = i % 5 === 0 ? 'rgba(0,240,255,0.3)' : 'rgba(0,240,255,0.1)';
+      ctx.lineWidth = i % 5 === 0 ? 1.5 : 0.5;
+      ctx.stroke();
+    }
+
+    // JARVIS center text
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 16px Orbitron, monospace';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('JARVIS', cx, cy);
+
+    // Iron Man helmet wireframe (simplified arc reactor + helmet outline)
+    // Helmet shape
+    ctx.beginPath();
+    ctx.moveTo(cx - 60, cy - 80);
+    ctx.quadraticCurveTo(cx - 70, cy - 130, cx, cy - 150);
+    ctx.quadraticCurveTo(cx + 70, cy - 130, cx + 60, cy - 80);
+    ctx.lineTo(cx + 50, cy - 30);
+    ctx.lineTo(cx + 30, cy - 10);
+    ctx.lineTo(cx - 30, cy - 10);
+    ctx.lineTo(cx - 50, cy - 30);
+    ctx.closePath();
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.4)';
+    ctx.lineWidth = 1.5;
+    ctx.stroke();
+
+    // Eyes glow
+    ctx.beginPath();
+    ctx.ellipse(cx - 22, cy - 75, 10, 5, -0.2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 240, 255, ${0.6 + Math.sin(pulse * 2) * 0.3})`;
+    ctx.shadowColor = '#00f0ff';
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.beginPath();
+    ctx.ellipse(cx + 22, cy - 75, 10, 5, 0.2, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 240, 255, ${0.6 + Math.sin(pulse * 2) * 0.3})`;
+    ctx.shadowColor = '#00f0ff';
+    ctx.shadowBlur = 12;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Arc reactor
+    ctx.beginPath();
+    ctx.arc(cx, cy + 50, 28, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.5)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy + 50, 20, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.3)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy + 50, 10, 0, Math.PI * 2);
+    ctx.fillStyle = `rgba(0, 240, 255, ${0.7 + Math.sin(pulse * 1.5) * 0.2})`;
+    ctx.shadowColor = '#00f0ff';
+    ctx.shadowBlur = 20 + Math.sin(pulse) * 8;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Chest plate outline
+    ctx.beginPath();
+    ctx.moveTo(cx - 70, cy + 20);
+    ctx.lineTo(cx - 80, cy + 100);
+    ctx.lineTo(cx - 40, cy + 140);
+    ctx.lineTo(cx + 40, cy + 140);
+    ctx.lineTo(cx + 80, cy + 100);
+    ctx.lineTo(cx + 70, cy + 20);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.2)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    // Circuit lines
+    ctx.beginPath();
+    ctx.moveTo(cx - 40, cy + 80);
+    ctx.lineTo(cx - 20, cy + 60);
+    ctx.lineTo(cx - 10, cy + 50);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(cx + 40, cy + 80);
+    ctx.lineTo(cx + 20, cy + 60);
+    ctx.lineTo(cx + 10, cy + 50);
+    ctx.strokeStyle = 'rgba(0, 240, 255, 0.15)';
+    ctx.stroke();
+
+    requestAnimationFrame(draw);
+  }
+  draw();
 }
 
-function fetchIP() {
+// ========================
+// NETWORK / BATTERY / WEATHER
+// ========================
+function setupNetwork() {
   fetch('https://api.ipify.org?format=json')
     .then(r => r.json())
-    .then(d => {
-      $('ipAddr').textContent = d.ip;
-      $('rightIp').textContent = d.ip;
-    })
-    .catch(() => {
-      $('ipAddr').textContent = '127.0.0.1';
-      $('rightIp').textContent = '127.0.0.1';
+    .then(d => { document.getElementById('netIp').textContent = d.ip; })
+    .catch(() => { document.getElementById('netIp').textContent = '46.202.179.113'; });
+
+  const conn = navigator.connection;
+  if (conn) {
+    const update = () => {
+      document.getElementById('netDown').textContent = (conn.downlink ? conn.downlink + ' Mbps' : '--');
+    };
+    update();
+    conn.addEventListener('change', update);
+  }
+}
+
+function setupBattery() {
+  if ('getBattery' in navigator) {
+    navigator.getBattery().then(bat => {
+      const update = () => {
+        const pct = Math.round(bat.level * 100);
+        document.getElementById('footerStatus').textContent =
+          `Currently power level is at ${pct} percent and ${bat.charging ? 'charging' : 'holding steady'}.`;
+      };
+      update();
+      bat.addEventListener('levelchange', update);
+      bat.addEventListener('chargingchange', update);
     });
+  }
 }
 
 function fetchWeather() {
   if (!navigator.geolocation) return;
   navigator.geolocation.getCurrentPosition(pos => {
-    const {latitude, longitude} = pos.coords;
-    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,apparent_temperature,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min&timezone=auto`)
+    const lat = pos.coords.latitude;
+    const lon = pos.coords.longitude;
+    fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&daily=temperature_2m_max,temperature_2m_min,weather_code&timezone=auto`)
       .then(r => r.json())
       .then(d => {
         const cur = d.current;
-        $('weatherWidget').innerHTML = `
-          <div class="weather-row"><span>Temp</span><span>${cur.temperature_2m}°C</span></div>
-          <div class="weather-row"><span>Humidity</span><span>${cur.relative_humidity_2m}%</span></div>
-          <div class="weather-row"><span>Feels Like</span><span>${cur.apparent_temperature}°C</span></div>
-          <div class="weather-row"><span>Wind</span><span>${cur.wind_speed_10m} km/h</span></div>
-          <div class="forecast">
-            <div class="weather-row" style="color:var(--cyan);"><span>Today</span><span>${d.daily.temperature_2m_max[0]}°/${d.daily.temperature_2m_min[0]}°</span></div>
-            <div class="weather-row"><span>Tomorrow</span><span>${d.daily.temperature_2m_max[1]}°/${d.daily.temperature_2m_min[1]}°</span></div>
-          </div>
-        `;
+        document.getElementById('weatherLoc').textContent = `${cur.temperature_2m}°C`;
+        document.getElementById('weatherHum').textContent = cur.relative_humidity_2m + '%';
+        document.getElementById('weatherWind').textContent = cur.wind_speed_10m + ' km/h';
+        if (d.daily) {
+          document.getElementById('weatherToday').textContent = `${d.daily.temperature_2m_max[0]}°/${d.daily.temperature_2m_min[0]}°`;
+          document.getElementById('weatherTom').textContent = `${d.daily.temperature_2m_max[1]}°/${d.daily.temperature_2m_min[1]}°`;
+        }
       })
       .catch(() => {});
-  }, () => {}, {timeout: 5000});
+  }, () => {}, { timeout: 5000 });
 }
-
-/* ---- Canvas Gauges ---- */
-function drawAllGauges() {
-  drawRamGauge();
-  drawJarvisDial();
-  drawRadialMenu();
-}
-
-function drawRamGauge() {
-  const c = $('ramGauge');
-  const ctx = c.getContext('2d');
-  const val = parseInt($('ramValue').textContent) || 63;
-  const r = c.width / 2 - 4;
-  const cx = c.width / 2;
-  const cy = c.height / 2;
-
-  ctx.clearRect(0, 0, c.width, c.height);
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,229,255,0.15)';
-  ctx.lineWidth = 4;
-  ctx.stroke();
-
-  ctx.beginPath();
-  ctx.arc(cx, cy, r, -Math.PI / 2, -Math.PI / 2 + (Math.PI * 2 * val / 100));
-  ctx.strokeStyle = val > 80 ? '#ff1744' : '#00e5ff';
-  ctx.lineWidth = 4;
-  ctx.stroke();
-}
-
-function drawJarvisDial() {
-  const c = $('jarvisDial');
-  const ctx = c.getContext('2d');
-  const cx = c.width / 2;
-  const cy = c.height / 2;
-
-  ctx.clearRect(0, 0, c.width, c.height);
-
-  // Outer ring
-  ctx.beginPath();
-  ctx.arc(cx, cy, 140, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,229,255,0.3)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-
-  // Tick marks
-  for (let i = 0; i < 60; i++) {
-    const angle = (i / 60) * Math.PI * 2 - Math.PI / 2;
-    const inner = i % 5 === 0 ? 120 : 130;
-    const outer = 140;
-    ctx.beginPath();
-    ctx.moveTo(cx + Math.cos(angle) * inner, cy + Math.sin(angle) * inner);
-    ctx.lineTo(cx + Math.cos(angle) * outer, cy + Math.sin(angle) * outer);
-    ctx.strokeStyle = i % 5 === 0 ? 'rgba(0,229,255,0.6)' : 'rgba(0,229,255,0.2)';
-    ctx.lineWidth = i % 5 === 0 ? 2 : 1;
-    ctx.stroke();
-  }
-
-  // Inner rings
-  [100, 80, 60].forEach((rad, idx) => {
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
-    ctx.strokeStyle = `rgba(0,229,255,${0.15 - idx * 0.03})`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  });
-
-  // Animated arc
-  const time = Date.now() / 1000;
-  ctx.beginPath();
-  ctx.arc(cx, cy, 115, time, time + 2);
-  ctx.strokeStyle = 'rgba(0,229,255,0.4)';
-  ctx.lineWidth = 3;
-  ctx.stroke();
-
-  // Crosshairs
-  ctx.beginPath();
-  ctx.moveTo(cx - 20, cy);
-  ctx.lineTo(cx + 20, cy);
-  ctx.moveTo(cx, cy - 20);
-  ctx.lineTo(cx, cy + 20);
-  ctx.strokeStyle = 'rgba(255,255,255,0.3)';
-  ctx.lineWidth = 1;
-  ctx.stroke();
-}
-
-function drawRadialMenu() {
-  const c = $('radialMenu');
-  const ctx = c.getContext('2d');
-  const cx = c.width / 2;
-  const cy = c.height / 2;
-  ctx.clearRect(0, 0, c.width, c.height);
-
-  const segments = [
-    { label: 'DeviantArt', color: '#ff9100' },
-    { label: 'Steam', color: '#66c0f4' },
-    { label: 'Twitter', color: '#1da1f2' },
-    { label: 'Facebook', color: '#1877f2' },
-    { label: 'Documents', color: '#ffc400' },
-    { label: 'Pictures', color: '#00e5ff' },
-    { label: 'Videos', color: '#ff1744' },
-    { label: 'Music', color: '#2979ff' },
-  ];
-
-  const segAngle = (Math.PI * 2) / segments.length;
-  const time = Date.now() / 2000;
-
-  segments.forEach((seg, i) => {
-    const start = i * segAngle - Math.PI / 2 + time * 0.1;
-    const end = start + segAngle - 0.05;
-    const rad = 80 + Math.sin(time + i) * 5;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, rad, start, end);
-    ctx.strokeStyle = seg.color;
-    ctx.lineWidth = 18;
-    ctx.stroke();
-
-    const mid = (start + end) / 2;
-    const tx = cx + Math.cos(mid) * (rad + 28);
-    const ty = cy + Math.sin(mid) * (rad + 28);
-    ctx.fillStyle = seg.color;
-    ctx.font = '9px Orbitron';
-    ctx.textAlign = 'center';
-    ctx.fillText(seg.label, tx, ty);
-  });
-
-  // Center reticle
-  ctx.beginPath();
-  ctx.arc(cx, cy, 25, 0, Math.PI * 2);
-  ctx.strokeStyle = 'rgba(0,229,255,0.5)';
-  ctx.lineWidth = 2;
-  ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(cx, cy, 8, 0, Math.PI * 2);
-  ctx.fillStyle = 'rgba(0,229,255,0.3)';
-  ctx.fill();
-}
-
-function animateGraphs() {
-  ['graph1','graph2','graph3'].forEach((id, idx) => {
-    const c = $(id);
-    const ctx = c.getContext('2d');
-    ctx.clearRect(0, 0, c.width, c.height);
-    const points = 20;
-    ctx.beginPath();
-    ctx.moveTo(0, c.height);
-    for (let i = 0; i <= points; i++) {
-      const x = (i / points) * c.width;
-      const y = c.height - (Math.sin(Date.now() / 500 + i + idx * 2) * 0.3 + 0.4 + Math.random() * 0.2) * c.height;
-      ctx.lineTo(x, y);
-    }
-    ctx.lineTo(c.width, c.height);
-    ctx.fillStyle = `rgba(0,${180 + idx * 30},255,0.15)`;
-    ctx.fill();
-    ctx.strokeStyle = `rgba(0,${180 + idx * 30},255,0.4)`;
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  });
-}
-
-/* ---- Speech System ---- */
-function setupSpeech() {
-  if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-    $('voiceSubtitle').textContent = 'Voice commands not supported in this browser.';
-    return;
-  }
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = 'en-US';
-
-  recognition.onstart = () => {
-    isListening = true;
-    $('voiceOverlay').classList.add('active');
-    $('activateBtn').classList.add('listening');
-    $('voiceText').textContent = 'LISTENING';
-    $('voiceSubtitle').textContent = 'Say something, sir...';
-  };
-
-  recognition.onresult = (e) => {
-    let transcript = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) {
-      transcript += e.results[i][0].transcript;
-    }
-    $('voiceSubtitle').textContent = transcript;
-    if (e.results[e.results.length - 1].isFinal) {
-      processCommand(transcript.toLowerCase().trim());
-    }
-  };
-
-  recognition.onend = () => {
-    isListening = false;
-    $('voiceOverlay').classList.remove('active');
-    $('activateBtn').classList.remove('listening');
-  };
-
-  recognition.onerror = () => {
-    isListening = false;
-    $('voiceOverlay').classList.remove('active');
-    $('activateBtn').classList.remove('listening');
-  };
-}
-
-function toggleVoice() {
-  if (!recognition) {
-    jarvisSpeak('Voice recognition is not available in this browser, sir.');
-    return;
-  }
-  if (isListening) {
-    recognition.stop();
-  } else {
-    playTone(880, 0.1);
-    recognition.start();
-  }
-}
-
-function processCommand(cmd) {
-  $('voiceText').textContent = 'PROCESSING';
-  playTone(660, 0.05);
-  setTimeout(() => playTone(880, 0.1), 100);
-
-  if (cmd.includes('time')) {
-    const now = new Date();
-    jarvisSpeak(`The current time is ${now.toLocaleTimeString()}.`);
-  } else if (cmd.includes('date') || cmd.includes('day')) {
-    const now = new Date();
-    jarvisSpeak(`Today is ${now.toLocaleDateString('en-US', {weekday:'long', month:'long', day:'numeric', year:'numeric'})}.`);
-  } else if (cmd.includes('weather')) {
-    jarvisSpeak('I am displaying the current weather data in the top right panel, sir.');
-  } else if (cmd.includes('system') || cmd.includes('status')) {
-    const cpu = $('cpuMonitor').textContent;
-    const ram = $('ramMonitor').textContent;
-    jarvisSpeak(`All systems are operational. CPU usage is at ${cpu} and RAM usage is at ${ram}.`);
-  } else if (cmd.includes('open') || cmd.includes('launch')) {
-    if (cmd.includes('google')) openLink('https://google.com');
-    else if (cmd.includes('youtube')) openLink('https://youtube.com');
-    else if (cmd.includes('github')) openLink('https://github.com');
-    else jarvisSpeak('Which application would you like me to open, sir?');
-  } else if (cmd.includes('hello') || cmd.includes('hi')) {
-    jarvisSpeak('Hello, sir. I am J.A.R.V.I.S., your personal AI assistant. How may I be of service?');
-  } else if (cmd.includes('shutdown')) {
-    jarvisSpeak('Initiating shutdown sequence. Goodbye, sir.');
-  } else if (cmd.includes('joke')) {
-    const jokes = [
-      'Why did the robot go on vacation? He needed to recharge his batteries.',
-      'I would tell you a UDP joke, but you might not get it.',
-      'Why do programmers prefer dark mode? Because light attracts bugs.'
-    ];
-    jarvisSpeak(jokes[Math.floor(Math.random() * jokes.length)]);
-  } else if (cmd.includes('who are you')) {
-    jarvisSpeak('I am J.A.R.V.I.S., Just A Rather Very Intelligent System. I manage your household security and various other systems.');
-  } else if (cmd.includes('thank')) {
-    jarvisSpeak('You are welcome, sir. Always at your service.');
-  } else {
-    jarvisSpeak(`I heard you say: ${cmd}. I am still learning to process that command.`);
-  }
-}
-
-function jarvisSpeak(text) {
-  if (!synth) return;
-  synth.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.rate = 0.95;
-  utter.pitch = 0.85;
-  utter.volume = 1;
-  // Try to find a British male voice
-  const voices = synth.getVoices();
-  const british = voices.find(v => v.lang.includes('GB') && v.name.includes('Male')) ||
-                  voices.find(v => v.lang.includes('GB')) ||
-                  voices.find(v => v.name.includes('Daniel')) ||
-                  voices.find(v => v.name.includes('Google UK English Male'));
-  if (british) utter.voice = british;
-  synth.speak(utter);
-}
-
-function playTone(freq, duration) {
-  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const osc = audioCtx.createOscillator();
-  const gain = audioCtx.createGain();
-  osc.connect(gain);
-  gain.connect(audioCtx.destination);
-  osc.frequency.value = freq;
-  osc.type = 'sine';
-  gain.gain.setValueAtTime(0.05, audioCtx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-  osc.start();
-  osc.stop(audioCtx.currentTime + duration);
-}
-
-/* ---- Media Player ---- */
-let isPlaying = false;
-let trackSeconds = 244;
-const tracks = [
-  { name: 'BassNectar - Lost in the Crowd', duration: 284 },
-  { name: 'Daft Punk - Tron Legacy (End Titles)', duration: 198 },
-  { name: 'Hans Zimmer - Time', duration: 255 },
-  { name: 'Ramin Djawadi - Iron Man', duration: 186 },
-];
-let currentTrack = 0;
-
-function updateTrackTime() {
-  if (isPlaying) {
-    trackSeconds++;
-    if (trackSeconds >= tracks[currentTrack].duration) mediaNext();
-  }
-  const m = Math.floor(trackSeconds / 60);
-  const s = (trackSeconds % 60).toString().padStart(2, '0');
-  $('trackTime').textContent = `${m}:${s}`;
-}
-
-function mediaPlayPause() {
-  isPlaying = !isPlaying;
-  $('playBtn').innerHTML = isPlaying ? '&#9646;&#9646;' : '&#9658;';
-  if (isPlaying) jarvisSpeak('Playing music, sir.');
-}
-
-function mediaNext() {
-  currentTrack = (currentTrack + 1) % tracks.length;
-  trackSeconds = 0;
-  $('trackName').textContent = tracks[currentTrack].name;
-  jarvisSpeak(`Now playing: ${tracks[currentTrack].name}`);
-}
-
-function mediaPrev() {
-  currentTrack = (currentTrack - 1 + tracks.length) % tracks.length;
-  trackSeconds = 0;
-  $('trackName').textContent = tracks[currentTrack].name;
-}
-
-function setVolume(e) {
-  const rect = e.currentTarget.getBoundingClientRect();
-  const pct = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-  $('volumeFill').style.width = (pct * 100) + '%';
-}
-
-/* ---- Utilities ---- */
-function openLink(url) {
-  window.open(url, '_blank');
-}
-
-function openApp(name) {
-  jarvisSpeak(`Launching ${name}, sir.`);
-}
-
-function setupTooltips() {
-  const tooltip = $('tooltip');
-  document.querySelectorAll('[data-tip]').forEach(el => {
-    el.addEventListener('mouseenter', e => {
-      tooltip.textContent = el.dataset.tip;
-      tooltip.classList.add('visible');
-    });
-    el.addEventListener('mousemove', e => {
-      tooltip.style.left = (e.clientX + 12) + 'px';
-      tooltip.style.top = (e.clientY + 12) + 'px';
-    });
-    el.addEventListener('mouseleave', () => tooltip.classList.remove('visible'));
-  });
-}
-
-// Spacebar to activate voice
-document.addEventListener('keydown', e => {
-  if (e.code === 'Space' && !e.repeat && e.target === document.body) {
-    e.preventDefault();
-    toggleVoice();
-  }
-});
-
-// Boot up
-window.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
