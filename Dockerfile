@@ -4,7 +4,7 @@ WORKDIR /app
 
 # Copy and install frontend deps
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # Copy source and build
 COPY . .
@@ -16,7 +16,7 @@ WORKDIR /app
 
 # Copy backend
 COPY api/package*.json ./api/
-RUN cd api && npm ci --production && cd ..
+RUN cd api && npm install --production && cd ..
 COPY api ./api
 
 # Copy built frontend into backend's static path
