@@ -208,8 +208,8 @@ export default function JarvisCore({ isListening, glitchKey }) {
       onMouseLeave={handleMouseLeave}>
       <canvas
         ref={canvasRef}
-        className="w-[360px] h-[420px]"
-        style={{ cursor: 'crosshair' }}
+        className="w-[280px] h-[320px] sm:w-[320px] sm:h-[380px] lg:w-[360px] lg:h-[420px]"
+        style={{ cursor: 'crosshair', maxWidth: '90vw', maxHeight: '50vh' }}
       />
     </div>
   )

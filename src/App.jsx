@@ -34,9 +34,19 @@ export default function App() {
   const [voices, setVoices] = useState([])
   const [particles, setParticles] = useState([])
   const [glitchKey, setGlitchKey] = useState(0)
+  const [leftOpen, setLeftOpen] = useState(false)
+  const [rightOpen, setRightOpen] = useState(false)
+  const [isMobile, setIsMobile] = useState(false)
   const recognitionRef = useRef(null)
   const data = useSimulatedData()
   const chat = useChat()
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 1024)
+    check()
+    window.addEventListener('resize', check)
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   useEffect(() => {
     const load = () => setVoices(speechSynthesis.getVoices())
@@ -166,25 +176,66 @@ export default function App() {
   return (
     <>
       {!active && <StartOverlay onActivate={activate} />}
+
       <div className={`h-full w-full transition-opacity duration-1000 ${active ? 'opacity-100' : 'opacity-0'}`}>
         <ParticleField particles={particles} />
-        <div className="h-full w-full transition-opacity duration-1000 relative z-10"
-          style={{
-            display: 'grid',
-            gridTemplateColumns: '240px 1fr 300px',
-            gridTemplateRows: '90px 1fr 140px',
-            gap: '14px',
-            padding: '14px',
-            height: '100vh',
-            opacity: active ? 1 : 0,
-          }}>
-          <div style={{ gridColumn: '1', gridRow: '1 / 3', display: 'flex', flexDirection: 'column', gap: '14px', overflow: 'hidden' }}>
+
+        {/* Mobile top bar */}
+        <div className="lg:hidden fixed top-0 left-0 right-0 z-50 flex items-center justify-between px-3 py-2 bg-black/80 backdrop-blur border-b border-cyan/10">
+          <button onClick={() => { setLeftOpen(!leftOpen); setRightOpen(false) }}
+            className="text-cyan text-xl p-1 border border-cyan/20 rounded">
+            &#9776;
+          </button>
+          <h1 className="font-orbitron text-sm tracking-[0.2em] text-white"
+            style={{ textShadow: '0 0 8px rgba(0,240,255,0.4)' }}>
+            J.A.R.V.I.S.
+          </h1>
+          <button onClick={() => { setRightOpen(!rightOpen); setLeftOpen(false) }}
+            className="text-cyan text-xl p-1 border border-cyan/20 rounded">
+            &#9881;
+          </button>
+        </div>
+
+        {/* Mobile left sidebar overlay */}
+        {isMobile && leftOpen && (
+          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setLeftOpen(false)}>
+            <div className="absolute left-0 top-10 bottom-0 w-[260px] bg-black/95 border-r border-cyan/20 p-3 overflow-y-auto"
+              onClick={e => e.stopPropagation()}>
+              <ProfilePanel data={data} />
+              <div className="mt-3"><NetworkPanel /></div>
+              <div className="mt-3"><CalendarPanel /></div>
+              <div className="mt-3"><AppLauncherPanel /></div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile right sidebar overlay */}
+        {isMobile && rightOpen && (
+          <div className="fixed inset-0 z-40 bg-black/60" onClick={() => setRightOpen(false)}>
+            <div className="absolute right-0 top-10 bottom-0 w-[260px] bg-black/95 border-l border-cyan/20 p-3 overflow-y-auto"
+              onClick={e => e.stopPropagation()}>
+              <SystemMonitorPanel data={data} />
+              <div className="mt-3"><WeatherPanel /></div>
+              <div className="mt-3"><DatePowerPanel /></div>
+              <div className="mt-3"><MediaPlayerPanel /></div>
+            </div>
+          </div>
+        )}
+
+        {/* Main layout */}
+        <div className="jarvis-grid relative z-10 h-full w-full"
+          style={{ opacity: active ? 1 : 0, transition: 'opacity 1s' }}>
+
+          {/* Desktop LEFT COLUMN */}
+          <div className="hidden lg:flex left-col flex-col gap-3.5 overflow-hidden">
             <ProfilePanel data={data} />
             <NetworkPanel />
             <CalendarPanel />
             <AppLauncherPanel />
           </div>
-          <div className="hud-panel" style={{ gridColumn: '2', gridRow: '1', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+
+          {/* HEADER - desktop */}
+          <div className="hidden lg:flex header-col hud-panel items-center justify-center">
             <div className="text-center">
               <h1 className="font-orbitron text-2xl tracking-[0.3em] text-white"
                 style={{ textShadow: '0 0 10px rgba(0,240,255,0.4)' }}>
@@ -195,11 +246,13 @@ export default function App() {
               </p>
             </div>
           </div>
-          <div className="hud-panel relative flex items-center justify-center overflow-hidden" style={{ gridColumn: '2', gridRow: '2' }}>
+
+          {/* CENTER - all devices */}
+          <div className="center-col hud-panel relative flex items-center justify-center overflow-hidden">
             {!chat.chatOpen && (
               <>
                 <JarvisCore isListening={isListening} glitchKey={glitchKey} />
-                <div className="absolute left-6 top-1/2 -translate-y-1/2 flex flex-col gap-1.5">
+                <div className="hidden lg:flex absolute left-6 top-1/2 -translate-y-1/2 flex-col gap-1.5">
                   {quickLinks.map(link => (
                     <div key={link.label}
                       className="text-[0.55rem] tracking-[0.15em] text-hud-dim cursor-pointer py-0.5 px-2 border-l border-transparent hover:border-cyan hover:text-cyan transition-all"
@@ -208,8 +261,19 @@ export default function App() {
                     </div>
                   ))}
                 </div>
+                {/* Mobile quick links row */}
+                <div className="lg:hidden absolute bottom-2 left-0 right-0 flex justify-center gap-2 flex-wrap px-2">
+                  {quickLinks.slice(0, 6).map(link => (
+                    <button key={link.label}
+                      className="text-[0.6rem] tracking-wider text-hud-dim bg-black/40 border border-cyan/10 px-2 py-1 rounded"
+                      onClick={() => window.open(link.url, '_blank')}>
+                      {link.label}
+                    </button>
+                  ))}
+                </div>
               </>
             )}
+
             <ChatPanel
               messages={chat.messages}
               isTyping={chat.isTyping}
@@ -222,16 +286,33 @@ export default function App() {
               onVoiceToggle={toggleVoice}
             />
           </div>
-          <div style={{ gridColumn: '3', gridRow: '1 / 3', display: 'flex', flexDirection: 'column', gap: '14px', overflow: 'hidden' }}>
+
+          {/* Desktop RIGHT COLUMN */}
+          <div className="hidden lg:flex right-col flex-col gap-3.5 overflow-hidden">
             <SystemMonitorPanel data={data} />
             <WeatherPanel />
             <DatePowerPanel />
             <MediaPlayerPanel />
           </div>
-          <div style={{ gridColumn: '1 / 4', gridRow: '3' }}>
+
+          {/* FOOTER - desktop */}
+          <div className="hidden lg:block footer-col">
             <FooterPanel />
           </div>
+
+          {/* Mobile footer bar */}
+          <div className="lg:hidden mobile-footer">
+            <div className="flex items-center justify-between px-3 py-2 bg-black/80 border-t border-cyan/10">
+              <div className="font-orbitron text-lg text-white">{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+              <div className="text-[0.6rem] text-hud-dim">SYSTEM ONLINE</div>
+              <button onClick={() => chat.setChatOpen(!chat.chatOpen)}
+                className="text-cyan text-xs border border-cyan/30 px-2 py-1 rounded">
+                {chat.chatOpen ? 'HUD' : 'CHAT'}
+              </button>
+            </div>
+          </div>
         </div>
+
         <VoiceIndicator isListening={isListening} />
       </div>
     </>
